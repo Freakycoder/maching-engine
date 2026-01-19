@@ -1,22 +1,22 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct Order{
+pub struct OrderNode{
     pub order_id : Uuid,
-    pub order_type : OrderType,
     pub initial_quantity : u32,
     pub current_quantity : u32,
-    pub market_limit : Option<f64>
+    pub market_limit : u32, // essentially the limit price at which the order gets executed
+    pub next : Option<usize>,
+    pub prev : Option<usize>
 }
 
 
 #[derive(Debug)]
 pub struct NewOrder{
-    pub uuid : String, //remains the same for every order
     pub order_id : Uuid, // changes, could be multiple order for different assets/security
-    pub price : Option<u32>, // would be None if its a market order
+    pub price : u32, // need to check about the price ticks
     pub quantity : u32,
     pub is_buy_side : bool,
     pub security_id : u32,
@@ -32,56 +32,48 @@ pub enum OrderType{
 #[derive(Debug)]
 pub struct CancelOrder{
     pub order_id : Uuid,
-    pub price : u32,
     pub is_buy_side : bool
 }
 
+#[derive(Debug)]
 pub struct ModifyOrder{
     pub order_id : Uuid,
+    pub security_id : u32,
     pub is_buy_side : bool,
-    pub modify_price : u32,
-    pub modify_quantity : u32
+    pub new_price : u32,
+    pub new_quantity : u32,
+    pub change_side : bool
 }
 
-pub struct AssetLookUp{
-    _asset_view : HashMap<String, String>
+#[derive(Debug)]
+pub struct OrderRegistry{
+    _asset_view : HashMap<Uuid, usize>
 }
 
-impl AssetLookUp {
+impl OrderRegistry {
     pub fn new() -> Self{
         Self { _asset_view: HashMap::new() }
     }
-    pub fn insert(&mut self, asset_id : String) -> Result<(), anyhow::Error >{
-        if let Err(e) = self.insert(asset_id){
-
-        };
-        Ok(())
+    pub fn insert(&mut self, order_id : Uuid, idx : usize) -> Option<usize>{
+        self._asset_view.insert(order_id, idx)
+    }
+    pub fn order_exist(&self, order_id : Uuid) -> bool{
+        self._asset_view.contains_key(&order_id)
+    }
+    pub fn get_idx(&self, order_id : Uuid) -> &usize{
+        self._asset_view.get(&order_id).unwrap()
+    }
+    pub fn delete_key(&mut self, order_id : Uuid) -> Option<usize>{
+        self._asset_view.remove(&order_id)
     }
 }
 
 #[derive(Debug)]
 pub struct PriceLevel{
-    _price_level : VecDeque<Order>
-}
-
-impl PriceLevel {
-    pub fn new() -> Self{
-        Self { _price_level: VecDeque::new() }
-    }
-    pub fn insert(&mut self, order : Order){
-        self._price_level.push_back(order);
-        // add insertion logging here
-    }
-    pub fn remove(&mut self, order : CancelOrder) -> Result<() , anyhow::Error>{
-        self._price_level.retain(|existing_order| {
-         existing_order.order_id != order.order_id    
-        });
-        // add deletion logging here
-        Ok(())
-    }
-    pub fn order_range(&mut self){
-
-    }
+    pub head : usize,
+    pub tail : usize,
+    pub order_count : u32,
+    pub total_quantity : u32
 }
 
 
