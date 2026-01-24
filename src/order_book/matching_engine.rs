@@ -6,7 +6,7 @@ pub struct MatchingEngine{
 }
 
 impl MatchingEngine {
-    pub fn handle_new_order(&mut self, order : NewOrder) -> Result<(), anyhow::Error>{
+    pub fn match_order(&mut self, order : NewOrder) -> Result<(), anyhow::Error>{
         if !order.is_buy_side { // for ASK order
             match order.order_type {
                 OrderType::Market(None) => {
