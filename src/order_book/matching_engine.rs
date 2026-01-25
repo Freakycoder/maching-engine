@@ -1,4 +1,6 @@
+use tracing::Span;
 use crate::order_book::{orderbook::OrderBook, types::{NewOrder, OrderNode, OrderType}};
+
 
 #[derive(Debug)]
 pub struct MatchingEngine{
@@ -6,12 +8,14 @@ pub struct MatchingEngine{
 }
 
 impl MatchingEngine {
-    pub fn match_order(&mut self, order : NewOrder) -> Result<(), anyhow::Error>{
+    pub fn match_order(&mut self, order : NewOrder, span : &Span) -> Result<(), anyhow::Error>{
         if !order.is_buy_side { // for ASK order
             match order.order_type {
                 OrderType::Market(None) => {
                     // need to immediatly execute the order on the best of other half
                     let mut fill_quantity = order.quantity;
+                    let mut levels_touched = 0;
+                    let mut orders_consumed = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -25,28 +29,41 @@ impl MatchingEngine {
                                 let first_order_node = self._orderbook.bid.order_pool[head_idx].as_mut().unwrap();
                                 if fill_quantity >= first_order_node.current_quantity{
                                     fill_quantity -= first_order_node.current_quantity;
-                                    price_level.total_quantity -= fill_quantity;
+                                    price_level.total_quantity -= first_order_node.current_quantity;
                                     let next = first_order_node.next;
                                     self._orderbook.bid.order_pool[head_idx] = None;
                                     self._orderbook.bid.free_list.push(head_idx);
+                                    orders_consumed += 1;
                                     if let Some(next_order_idx) = next{
                                         price_level.head = next_order_idx;
                                     }
                                     else {
+                                        span.record("reason", "exhausted");
                                         break;
                                     }
                                 } else {
-                                  first_order_node.current_quantity -= fill_quantity;
-                                  price_level.total_quantity -= fill_quantity;
-                                  fill_quantity = 0;
+                                    first_order_node.current_quantity -= fill_quantity;
+                                    price_level.total_quantity -= fill_quantity;
+                                    fill_quantity = 0;
                                 }
                             }
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node{
                             self._orderbook.bid.price_map.pop_first();
+                            levels_touched += 1;
                         }
                     };
+                    if fill_quantity == 0 {
+                        span.record("filled", true);
+                    }
+                    else {
+                        span.record("filled", false);
+                    }
+                    span.record("order_type", "market");
+                    span.record("is_buy_side", false);
+                    span.record("levels_touched", levels_touched);
+                    span.record("order_consumed", orders_consumed);
                 }
                 OrderType::Market(market_limit) => {
                     let mut fill_quantity = order.quantity;
