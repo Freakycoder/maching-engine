@@ -1,4 +1,6 @@
 use std::{collections::{BTreeMap}};
+use tracing::instrument;
+
 use crate::order_book::types::{CancelOrder, ModifyOrder, OrderNode, OrderRegistry,PriceLevel};
 
 #[derive(Debug)]
@@ -12,6 +14,15 @@ impl OrderBook {
         Self { asset_id : name , ask : HalfBook::new(), bid : HalfBook::new() }
     }
 
+    #[instrument( // used for auto span creation & drop.
+        name = "create_buy_order",
+        skip(self),
+        fields(
+            order_id = %resting_order.order_id,
+            price = resting_order.market_limit 
+        ),
+        err
+    )]
     pub fn create_buy_order(&mut self, resting_order : OrderNode) -> Result<(), anyhow::Error>{
         
         let mut order = resting_order;
@@ -69,6 +80,16 @@ impl OrderBook {
         
         Ok(())
     }
+
+    #[instrument( 
+        name = "create_sell_order",
+        skip(self),
+        fields(
+            order_id = %resting_order.order_id,
+            price = resting_order.market_limit 
+        ),
+        err
+    )]
     pub fn create_sell_order(&mut self, resting_order : OrderNode) -> Result<(), anyhow::Error>{
         let mut order = resting_order;
         let order_id = order.order_id;
@@ -125,6 +146,15 @@ impl OrderBook {
         
         Ok(())
     }
+
+    #[instrument( 
+        name = "cancel_order",
+        skip(self),
+        fields(
+            order_id = %order.order_id
+        ),
+        err
+    )]
     pub fn cancel_order(&mut self, order : CancelOrder) -> Result<(), anyhow::Error>{
         if order.is_buy_side {
            if self.bid.order_registry.order_exist(order.order_id){
@@ -179,6 +209,15 @@ impl OrderBook {
         }
         Ok(())
     }
+
+    #[instrument( 
+        name = "modify_order",
+        skip(self),
+        fields(
+            order_id = %order.order_id,
+        ),
+        err
+    )]
     pub fn modify_order(&mut self, order : ModifyOrder) -> Result<(), anyhow::Error>{
         if order.is_buy_side{
             if self.bid.order_registry.order_exist(order.order_id){
