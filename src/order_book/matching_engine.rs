@@ -67,6 +67,8 @@ impl MatchingEngine {
                 }
                 OrderType::Market(market_limit) => {
                     let mut fill_quantity = order.quantity;
+                    let mut levels_touched = 0;
+                    let mut orders_consumed = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -87,10 +89,12 @@ impl MatchingEngine {
                                     let next = first_order_node.next;
                                     self._orderbook.bid.order_pool[head_idx] = None;
                                     self._orderbook.bid.free_list.push(head_idx);
+                                    orders_consumed += 1;
                                     if let Some(next_order_idx) = next{
                                         price_level.head = next_order_idx;
                                     }
                                     else {
+                                        span.record("reason", "exhausted");
                                         break;
                                     }
                                 } else {
@@ -103,8 +107,19 @@ impl MatchingEngine {
                         }
                         if remove_node{
                             self._orderbook.bid.price_map.pop_first();
+                            levels_touched += 1;
                         }
                     };
+                    if fill_quantity == 0 {
+                        span.record("filled", true);
+                    }
+                    else {
+                        span.record("filled", false);
+                    }
+                    span.record("order_type", "market");
+                    span.record("is_buy_side", false);
+                    span.record("levels_touched", levels_touched);
+                    span.record("order_consumed", orders_consumed);
                 }
                 OrderType::Limit => {
                     let mut fill_quantity = order.quantity;
