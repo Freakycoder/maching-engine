@@ -241,21 +241,6 @@ impl OrderBook {
                         }
                     // succesfully cancelled and created new order
                     return Ok(())
-                } else if order.change_side {
-                    if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side }){
-                        // log the fail message - "failed to cancel the modify order"
-                    };
-                    if let Err(_) = self.create_sell_order(OrderNode {order_id: order.order_id,
-                        initial_quantity : order.new_quantity,
-                        current_quantity : order.new_quantity,
-                        market_limit : order.new_price,
-                        next : None,
-                        prev : None })
-                        {
-                        // log the fail message for creating new SELL order
-                        }
-                    // succesfully cancelled and created new order
-                    return Ok(())
                 } else {
                     order_node.current_quantity = order.new_quantity;
                     return Ok(());
@@ -270,26 +255,11 @@ impl OrderBook {
                     let node = self.ask.order_pool[*idx].as_mut().unwrap();
                     node
                 };
-                if order.change_side || order.new_price != order_node.market_limit || order.new_quantity > order_node.initial_quantity{
+                if order.new_price != order_node.market_limit || order.new_quantity > order_node.initial_quantity{
                     if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side }){
                         // log the fail message - "failed to cancel the modify order"
                     };
                     if let Err(_) = self.create_sell_order(OrderNode {order_id: order.order_id,
-                        initial_quantity : order.new_quantity,
-                        current_quantity : order.new_quantity,
-                        market_limit : order.new_price,
-                        next : None,
-                        prev : None })
-                        {
-                        // log the fail message for creating new SELL order
-                        }
-                    // succesfully cancelled and created new order
-                    return Ok(())
-                } else if order.change_side {
-                    if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side }){
-                        // log the fail message - "failed to cancel the modify order"
-                    };
-                    if let Err(_) = self.create_buy_order(OrderNode {order_id: order.order_id,
                         initial_quantity : order.new_quantity,
                         current_quantity : order.new_quantity,
                         market_limit : order.new_price,
