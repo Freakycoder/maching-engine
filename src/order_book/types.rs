@@ -36,13 +36,12 @@ pub struct CancelOrder{
 }
 
 #[derive(Debug)]
-pub struct ModifyOrder{
+pub struct ModifyOrder{ //THINK ABOUT CANCEL AND NOT CANCEL SCENARIO
     pub order_id : Uuid,
     pub security_id : u32,
     pub is_buy_side : bool,
     pub new_price : u32,
     pub new_quantity : u32,
-    pub change_side : bool
 }
 
 #[derive(Debug)]
