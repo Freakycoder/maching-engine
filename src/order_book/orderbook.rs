@@ -227,7 +227,7 @@ impl OrderBook {
                     node
                 };
                 if order.new_price != order_node.market_limit || order.new_quantity > order_node.initial_quantity{
-                    if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side }){
+                    if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side, security_id: order.security_id }){
                         // log the fail message - "failed to cancel the modify order"
                     };
                     if let Err(_) = self.create_buy_order(OrderNode {order_id: order.order_id,
@@ -256,7 +256,7 @@ impl OrderBook {
                     node
                 };
                 if order.new_price != order_node.market_limit || order.new_quantity > order_node.initial_quantity{
-                    if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side }){
+                    if let Err(_) = self.cancel_order(CancelOrder { order_id: order.order_id, is_buy_side: order.is_buy_side, security_id : order.security_id }){
                         // log the fail message - "failed to cancel the modify order"
                     };
                     if let Err(_) = self.create_sell_order(OrderNode {order_id: order.order_id,
