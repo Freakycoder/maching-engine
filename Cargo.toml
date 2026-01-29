@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+tracing = "0.1.44"
 uuid = {version = "1.19.0", features = ['v4']}
