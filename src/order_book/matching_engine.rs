@@ -1,7 +1,7 @@
 use crate::order_book::{
     orderbook::OrderBook,
     types::{
-        GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderLocation, OrderNode, OrderType
+        CancelOrder, CancelOutcome, GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderLocation, OrderNode, OrderType
     },
 };
 use anyhow::Context;
@@ -124,6 +124,24 @@ impl MatchingEngine {
             return Ok(());
         }
         Ok(())
+    }
+
+    pub fn cancel(&mut self, global_order_id: Uuid, span: &Span) -> Result<CancelOutcome, anyhow::Error>{
+        let (order_index, is_buy_side,_, orderbook) = self
+            .get_orderbook(global_order_id)
+            .context("Could not find the orderbook")?;
+        if let Err(_) = orderbook.cancel_order(global_order_id, CancelOrder{is_buy_side, order_index}){
+            span.record("reason", "orderbook cancellation failed");
+            span.record("success_status", false);
+            return Ok(CancelOutcome::Failed);
+        }; 
+        if let Some(_) = self._global_registry.delete(&global_order_id){
+            span.record("success_status", true);
+            return Ok(CancelOutcome::Success)
+        };
+        span.record("reason", "Registry cancellation failed");
+        span.record("success_status", false);
+        Ok(CancelOutcome::Failed)
     }
 
     pub fn match_order(&mut self, order: NewOrder, span: &Span) -> Result<(), anyhow::Error> {
