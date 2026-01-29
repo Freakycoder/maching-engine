@@ -63,48 +63,57 @@ impl MatchingEngine {
                         old_current_qty,
                     } => {
                         span.record("modify_outcome", "price & qty");
-                        let _ = self.match_order(
-                        NewOrder {
-                            engine_order_id: global_order_id,
-                            price: new_price,
-                            initial_quantity: new_initial_qty,
-                            current_quantity : old_current_qty,
-                            is_buy_side,
-                            security_id,
-                            order_type: OrderType::Limit,
-                        },
-                        span);
-                        return Ok(()); 
+                        if let Some(_) = self._global_registry.delete(&global_order_id){
+                            let _ = self.match_order(
+                            NewOrder {
+                                engine_order_id: global_order_id,
+                                price: new_price,
+                                initial_quantity: new_initial_qty,
+                                current_quantity : old_current_qty,
+                                is_buy_side,
+                                security_id,
+                                order_type: OrderType::Limit,
+                            },
+                            span);
+                            return Ok(());
+                        }
+                        span.record("intermediate_error", "Failed to delete from global registry");
                     },
                     ModifyOutcome::Repriced { new_price, old_initial_qty, old_current_qty } => 
                         {
                         span.record("modify_outcome", "price");
-                        let _ = self.match_order(
-                        NewOrder {
-                            engine_order_id: global_order_id,
-                            price: new_price,
-                            initial_quantity: old_initial_qty,
-                            current_quantity : old_current_qty,
-                            is_buy_side,
-                            security_id,
-                            order_type: OrderType::Limit,
-                        },
-                        span);
-                        return Ok(());
+                        if let Some(_) = self._global_registry.delete(&global_order_id){
+                            let _ = self.match_order(
+                            NewOrder {
+                                engine_order_id: global_order_id,
+                                price: new_price,
+                                initial_quantity: old_initial_qty,
+                                current_quantity : old_current_qty,
+                                is_buy_side,
+                                security_id,
+                                order_type: OrderType::Limit,
+                            },
+                            span);
+                            return Ok(());
+                        }
+                        span.record("intermediate_error", "Failed to delete from global registry");
                     },
                     ModifyOutcome::Requantized { old_price, new_initial_qty, old_current_qty } => {
                         span.record("modify_outcome", "qty");
-                        let _ = self.match_order(
-                        NewOrder {
-                            engine_order_id: global_order_id,
-                            price: old_price,
-                            initial_quantity: new_initial_qty,
-                            current_quantity : old_current_qty,
-                            is_buy_side,
-                            security_id,
-                            order_type: OrderType::Limit,
-                        }, span);
-                        return Ok(());
+                        if let Some(_) = self._global_registry.delete(&global_order_id){
+                            let _ = self.match_order(
+                            NewOrder {
+                                engine_order_id: global_order_id,
+                                price: old_price,
+                                initial_quantity: new_initial_qty,
+                                current_quantity : old_current_qty,
+                                is_buy_side,
+                                security_id,
+                                order_type: OrderType::Limit,
+                            }, span);
+                            return Ok(());
+                        }
+                        span.record("intermediate_error", "Failed to delete from global registry");
                     },
                     ModifyOutcome::Inplace => {
                         span.record("modify_outcome", "qty reduction");
