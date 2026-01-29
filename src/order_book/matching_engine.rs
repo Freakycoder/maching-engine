@@ -1,8 +1,7 @@
 use crate::order_book::{
     orderbook::OrderBook,
     types::{
-        GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderNode,
-        OrderType,
+        GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderLocation, OrderNode, OrderType
     },
 };
 use anyhow::Context;
@@ -277,7 +276,7 @@ impl MatchingEngine {
                             levels_touched += 1;
                         }
                     }
-                    let _ = orderbook.create_sell_order(
+                    let alloted_index = orderbook.create_sell_order(
                         order.engine_order_id,
                         OrderNode {
                             initial_quantity: order.initial_quantity,
@@ -286,7 +285,13 @@ impl MatchingEngine {
                             next: None,
                             prev: None,
                         },
-                    );
+                    )?;
+                    let order_location = OrderLocation {
+                        security_id : order.security_id,
+                        is_buy_side : order.is_buy_side,
+                        order_index : alloted_index
+                    };
+                    self._global_registry.insert(order.engine_order_id, order_location);
                     span.record("order_type", "limit");
                     span.record("is_buy_side", false);
                     span.record("levels_touched", levels_touched);
@@ -437,7 +442,7 @@ impl MatchingEngine {
                             levels_touched += 1;
                         }
                     }
-                    let _ = orderbook.create_buy_order(
+                    let alloted_index = orderbook.create_buy_order(
                         order.engine_order_id,
                         OrderNode {
                             initial_quantity: order.initial_quantity,
@@ -446,7 +451,13 @@ impl MatchingEngine {
                             next: None,
                             prev: None,
                         },
-                    );
+                    )?;
+                    let order_location = OrderLocation {
+                        security_id : order.security_id,
+                        is_buy_side : order.is_buy_side,
+                        order_index : alloted_index
+                    };
+                    self._global_registry.insert(order.engine_order_id, order_location);
                     span.record("order_type", "limit");
                     span.record("is_buy_side", true);
                     span.record("levels_touched", levels_touched);
