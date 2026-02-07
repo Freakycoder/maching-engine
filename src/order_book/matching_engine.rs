@@ -16,6 +16,11 @@ pub struct MatchingEngine {
 }
 
 impl MatchingEngine {
+
+    pub fn new() -> Self{
+        Self { _book: HashMap::new(), _global_registry: GlobalOrderRegistry::new() }
+    }
+
     #[instrument(
         name = "get_orderbook",
         skip(self),
@@ -27,7 +32,7 @@ impl MatchingEngine {
         &mut self,
         global_order_id: Uuid,
     ) -> Option<(usize, bool,Uuid, &mut OrderBook)> {
-        let global_registry = self._global_registry.new();
+        let global_registry = GlobalOrderRegistry::new();
         let order_location = global_registry.get_details(&global_order_id)?;
         let Some(book) = self._book.get_mut(&order_location.security_id) else {
             return None;
