@@ -79,7 +79,7 @@ pub struct GlobalOrderRegistry{
 }
 
 impl GlobalOrderRegistry {
-    pub fn new(&self) -> Self{
+    pub fn new() -> Self{
         Self { map: HashMap::new() }
     }
 
