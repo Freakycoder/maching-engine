@@ -70,7 +70,7 @@ impl MatchingEngine {
                             let _ = self.match_order(
                             NewOrder {
                                 engine_order_id: global_order_id,
-                                price: new_price,
+                                price: Some(new_price),
                                 initial_quantity: new_initial_qty,
                                 current_quantity : old_current_qty,
                                 is_buy_side,
@@ -89,7 +89,7 @@ impl MatchingEngine {
                             let _ = self.match_order(
                             NewOrder {
                                 engine_order_id: global_order_id,
-                                price: new_price,
+                                price: Some(new_price),
                                 initial_quantity: old_initial_qty,
                                 current_quantity : old_current_qty,
                                 is_buy_side,
@@ -107,7 +107,7 @@ impl MatchingEngine {
                             let _ = self.match_order(
                             NewOrder {
                                 engine_order_id: global_order_id,
-                                price: old_price,
+                                price: Some(old_price),
                                 initial_quantity: new_initial_qty,
                                 current_quantity : old_current_qty,
                                 is_buy_side,
@@ -264,7 +264,7 @@ impl MatchingEngine {
                             let Some(mut price_node) = orderbook.bid.price_map.first_entry() else {
                                 break;
                             };
-                            if order.price >= *price_node.key() {
+                            if order.price >= Some(*price_node.key()) {
                                 break;
                             }
                             let price_level = price_node.get_mut();
@@ -303,7 +303,7 @@ impl MatchingEngine {
                         OrderNode {
                             initial_quantity: order.initial_quantity,
                             current_quantity: fill_quantity,
-                            market_limit: order.price,
+                            market_limit: order.price.unwrap(),
                             next: None,
                             prev: None,
                         },
@@ -430,7 +430,7 @@ impl MatchingEngine {
                             let Some(mut price_node) = orderbook.ask.price_map.last_entry() else {
                                 break;
                             };
-                            if order.price <= *price_node.key() {
+                            if order.price <= Some(*price_node.key()) {
                                 break;
                             }
                             let price_level = price_node.get_mut();
@@ -469,7 +469,7 @@ impl MatchingEngine {
                         OrderNode {
                             initial_quantity: order.initial_quantity,
                             current_quantity: fill_quantity,
-                            market_limit: order.price,
+                            market_limit: order.price.unwrap(),
                             next: None,
                             prev: None,
                         },
