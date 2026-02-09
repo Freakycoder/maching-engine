@@ -5,7 +5,7 @@ pub struct Tracing {}
 
 impl Tracing {
     pub fn match_order_span(
-        order_id: Uuid,
+        order_id: String,
         filled: bool,
         reason: &'static str,
         order_type: &'static str,
@@ -23,7 +23,7 @@ impl Tracing {
         )
     }
     pub fn modify_span(
-        order_id: Uuid,
+        order_id: String,
         filled: bool,
         reason: &'static str,
         modify_reason: &'static str,
