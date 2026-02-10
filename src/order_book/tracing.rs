@@ -13,6 +13,7 @@ impl Tracing {
         is_buy_side: bool,
         levels_touched: Empty,
         orders_consumed: Empty,
+        actual_time : Empty
     ) -> Span {
         info_span!("match_order", order_id = %order_id,
                     filled = filled,
@@ -20,7 +21,8 @@ impl Tracing {
                     order_type = %order_type ,
                     is_buy_side = %is_buy_side,
                     levels_touched = levels_touched,
-                    orders_consumed = orders_consumed
+                    orders_consumed = orders_consumed,
+                    actual_time = actual_time
         )
     }
     pub fn modify_span(
