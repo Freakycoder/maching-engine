@@ -267,6 +267,11 @@ impl OrderBook {
         }
     }
     
+    #[instrument( 
+        name = "book_depth",
+        skip(self),
+        err
+    )]
     pub fn depth(&self, levels_count : Option<usize>) -> Result<BookDepth, anyhow::Error>{
 
         let ask_iter = self.ask.price_map.iter().rev();
