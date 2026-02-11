@@ -1,10 +1,9 @@
 use crate::order_book::{
-    orderbook::OrderBook,
-    types::{
-        CancelOrder, CancelOutcome, GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderLocation, OrderNode, OrderType
-    },
+    self, orderbook::OrderBook, types::{
+        BookDepth, CancelOrder, CancelOutcome, GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderLocation, OrderNode, OrderType
+    }
 };
-use anyhow::{Context};
+use anyhow::{Context, anyhow};
 use std::collections::HashMap;
 use tracing::{Span, instrument};
 use uuid::Uuid;
@@ -156,6 +155,23 @@ impl MatchingEngine {
         span.record("reason", "Registry cancellation failed");
         span.record("success_status", false);
         Ok(CancelOutcome::Failed)
+    }
+
+    pub fn depth(&self, security_id : Uuid, levels_count :Option<usize>, span: &Span ) -> Result<BookDepth, anyhow::Error>{
+        span.record("security_id", security_id.to_string());
+        let Some(order_book) = self._book.get(&security_id) else {
+            span.record("status", "failed");
+            span.record("reason", "orderbook doesn't exist");
+            return Err(anyhow!(""))
+        };
+        match order_book.depth(levels_count){
+            Ok(book_depth) => {
+                span.record("status", "success");
+                span.record("reason", "None");
+                Ok(book_depth)
+            },
+            Err(e) => Err(anyhow!("{}", e))
+        }
     }
 
     pub fn match_order(&mut self, order: NewOrder, span: &Span) -> Result<(), anyhow::Error> {
