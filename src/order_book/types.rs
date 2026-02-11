@@ -132,5 +132,16 @@ pub enum CancelOutcome {
     Failed
 }
 
+#[derive(Debug)]
+pub struct BookDepth{
+    pub bid_depth : Vec<PriceLevelDepth>,
+    pub ask_depth : Vec<PriceLevelDepth>
+}
+
+#[derive(Debug)]
+pub struct PriceLevelDepth{
+    pub price_level : u32,
+    pub quantity : u32
+}
 
 
