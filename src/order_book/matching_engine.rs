@@ -1,5 +1,5 @@
 use crate::order_book::{
-    self, orderbook::OrderBook, types::{
+    orderbook::OrderBook, types::{
         BookDepth, CancelOrder, CancelOutcome, GlobalOrderRegistry, ModifyOrder, ModifyOutcome, NewOrder, OrderLocation, OrderNode, OrderType
     }
 };
@@ -157,7 +157,7 @@ impl MatchingEngine {
         Ok(CancelOutcome::Failed)
     }
 
-    pub fn depth(&self, security_id : Uuid, levels_count :Option<usize>, span: &Span ) -> Result<BookDepth, anyhow::Error>{
+    pub fn depth(&self, security_id : Uuid, levels_count :Option<u32>, span: &Span ) -> Result<BookDepth, anyhow::Error>{
         span.record("security_id", security_id.to_string());
         let Some(order_book) = self._book.get(&security_id) else {
             span.record("status", "failed");
