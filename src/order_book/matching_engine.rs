@@ -347,26 +347,28 @@ impl MatchingEngine {
                             levels_touched += 1;
                         }
                     }
-                    let alloted_index = orderbook.create_sell_order(
-                        order.engine_order_id,
-                        OrderNode {
-                            initial_quantity: order.initial_quantity,
-                            current_quantity: fill_quantity,
-                            market_limit: order.price.unwrap(),
-                            next: None,
-                            prev: None,
-                        },
-                    )?;
-                    let order_location = OrderLocation {
-                        security_id : order.security_id,
-                        is_buy_side : order.is_buy_side,
-                        order_index : alloted_index
-                    };
-                    self._global_registry.insert(order.engine_order_id, order_location);
-                    span.record("order_type", "limit");
-                    span.record("is_buy_side", false);
-                    span.record("levels_touched", levels_touched);
-                    span.record("orders_consumed", orders_consumed);
+                    if fill_quantity > 0 {
+                        let alloted_index = orderbook.create_sell_order(
+                            order.engine_order_id,
+                            OrderNode {
+                                initial_quantity: order.initial_quantity,
+                                current_quantity: fill_quantity,
+                                market_limit: order.price.unwrap(),
+                                next: None,
+                                prev: None,
+                            },
+                        )?;
+                        let order_location = OrderLocation {
+                            security_id : order.security_id,
+                            is_buy_side : order.is_buy_side,
+                            order_index : alloted_index
+                        };
+                        self._global_registry.insert(order.engine_order_id, order_location);
+                        span.record("order_type", "limit");
+                        span.record("is_buy_side", false);
+                        span.record("levels_touched", levels_touched);
+                        span.record("orders_consumed", orders_consumed);
+                    }
                 }
             }
         } else {
@@ -530,26 +532,28 @@ impl MatchingEngine {
                             levels_touched += 1;
                         }
                     }
-                    let alloted_index = orderbook.create_buy_order(
-                        order.engine_order_id,
-                        OrderNode {
-                            initial_quantity: order.initial_quantity,
-                            current_quantity: fill_quantity,
-                            market_limit: order.price.unwrap(),
-                            next: None,
-                            prev: None,
-                        },
-                    )?;
-                    let order_location = OrderLocation {
-                        security_id : order.security_id,
-                        is_buy_side : order.is_buy_side,
-                        order_index : alloted_index
-                    };
-                    self._global_registry.insert(order.engine_order_id, order_location);
-                    span.record("order_type", "limit");
-                    span.record("is_buy_side", true);
-                    span.record("levels_touched", levels_touched);
-                    span.record("orders_consumed", orders_consumed);
+                    if fill_quantity > 0{
+                        let alloted_index = orderbook.create_buy_order(
+                            order.engine_order_id,
+                            OrderNode {
+                                initial_quantity: order.initial_quantity,
+                                current_quantity: fill_quantity,
+                                market_limit: order.price.unwrap(),
+                                next: None,
+                                prev: None,
+                            },
+                        )?;
+                        let order_location = OrderLocation {
+                            security_id : order.security_id,
+                            is_buy_side : order.is_buy_side,
+                            order_index : alloted_index
+                        };
+                        self._global_registry.insert(order.engine_order_id, order_location);
+                        span.record("order_type", "limit");
+                        span.record("is_buy_side", true);
+                        span.record("levels_touched", levels_touched);
+                        span.record("orders_consumed", orders_consumed);
+                    }
                 }
             }
         }
