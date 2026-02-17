@@ -55,6 +55,7 @@ impl MatchingEngine {
         new_qty: Option<u32>,
         span: &Span,
     ) -> Result<(), anyhow::Error> {
+        let _gaurd = span.enter();
         let (order_index, is_buy_side,security_id, orderbook) = self
             .get_orderbook(global_order_id, span)
             .context("Could not find the orderbook")?;
