@@ -54,7 +54,7 @@ impl MatchingEngine {
         new_price: Option<u32>,
         new_qty: Option<u32>,
         span: &Span,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result< &'static str, anyhow::Error> {
         let _gaurd = span.enter();
         let (order_index, is_buy_side,security_id, orderbook) = self
             .get_orderbook(global_order_id, span)
@@ -88,9 +88,10 @@ impl MatchingEngine {
                                 order_type: OrderType::Limit,
                             },
                             span);
-                            return Ok(());
+                            return Ok("Both")
                         }
                         span.record("intermediate_error", "Failed to delete from global registry");
+                        return Ok("Error occured while deleting from global registry")
                     },
                     ModifyOutcome::Repriced { new_price, old_initial_qty, old_current_qty } => 
                         {
@@ -107,9 +108,10 @@ impl MatchingEngine {
                                 order_type: OrderType::Limit,
                             },
                             span);
-                            return Ok(());
+                            return Ok("Repriced")
                         }
                         span.record("intermediate_error", "Failed to delete from global registry");
+                        return Ok("Error occured while deleting from global registry")
                     },
                     ModifyOutcome::Requantized { old_price, new_initial_qty, old_current_qty } => {
                         span.record("modify_outcome", "qty");
@@ -124,20 +126,21 @@ impl MatchingEngine {
                                 security_id,
                                 order_type: OrderType::Limit,
                             }, span);
-                            return Ok(());
+                            return Ok("Requantized")
                         }
                         span.record("intermediate_error", "Failed to delete from global registry");
+                        return Ok("Error occured while deleting from global registry")
                     },
                     ModifyOutcome::Inplace => {
                         span.record("modify_outcome", "qty reduction");
-                        return Ok(());
+                        return Ok("Inplace")
                     }
                 }
             }
+            return Ok("No potential modification")
         } else {
-            return Ok(());
+            return Ok("No modification occured");
         }
-        Ok(())
     }
 
     pub fn cancel(&mut self, global_order_id: Uuid, span: &Span) -> Result<CancelOutcome, anyhow::Error>{
