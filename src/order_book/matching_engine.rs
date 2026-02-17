@@ -175,7 +175,7 @@ impl MatchingEngine {
         }
     }
 
-    pub fn match_order(&mut self, order: NewOrder, span: &Span) -> Result<(), anyhow::Error> {
+    pub fn match_order(&mut self, order: NewOrder, span: &Span) -> Result<Option<usize>, anyhow::Error> {
         
         let _gaurd = span.enter();
 
@@ -194,8 +194,8 @@ impl MatchingEngine {
                 OrderType::Market(None) => {
                     // need to immediatly execute the order on the best of other half
                     let mut fill_quantity = order.initial_quantity;
-                    let mut levels_touched = 0;
-                    let mut orders_consumed = 0;
+                    let mut levels_consumed = 0;
+                    let mut orders_touched = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -214,7 +214,7 @@ impl MatchingEngine {
                                         let next = first_order_node.next;
                                         orderbook.bid.order_pool[head_idx] = None;
                                         orderbook.bid.free_list.push(head_idx);
-                                        orders_consumed += 1;
+                                        orders_touched += 1;
                                         if let Some(next_order_idx) = next {
                                             price_level.head = Some(next_order_idx);
                                         } else {
@@ -226,6 +226,7 @@ impl MatchingEngine {
                                         first_order_node.current_quantity -= fill_quantity;
                                         price_level.total_quantity -= fill_quantity;
                                         fill_quantity = 0;
+                                        orders_touched += 1;
                                         span.record("filled", true);
                                     }
                                 }else {
@@ -236,18 +237,19 @@ impl MatchingEngine {
                         }
                         if remove_node {
                             orderbook.bid.price_map.pop_last();
-                            levels_touched += 1;
+                            levels_consumed += 1;
                         }
                     }
                     span.record("order_type", "market");
                     span.record("is_buy_side", false);
-                    span.record("levels_touched", levels_touched);
-                    span.record("orders_consumed", orders_consumed);
+                    span.record("levels_consumed", levels_consumed);
+                    span.record("orders_touched", orders_touched);
+                    Ok(None)
                 }
                 OrderType::Market(market_limit) => {
                     let mut fill_quantity = order.initial_quantity;
-                    let mut levels_touched = 0;
-                    let mut orders_consumed = 0;
+                    let mut levels_consumed = 0;
+                    let mut orders_touched = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -269,7 +271,7 @@ impl MatchingEngine {
                                         let next = first_order_node.next;
                                         orderbook.bid.order_pool[head_idx] = None;
                                         orderbook.bid.free_list.push(head_idx);
-                                        orders_consumed += 1;
+                                        orders_touched += 1;
                                         if let Some(next_order_idx) = next {
                                             price_level.head = Some(next_order_idx);
                                         } else {
@@ -281,6 +283,7 @@ impl MatchingEngine {
                                         first_order_node.current_quantity -= fill_quantity;
                                         price_level.total_quantity -= fill_quantity;
                                         fill_quantity = 0;
+                                        orders_touched += 1;
                                         span.record("filled", true);
                                     }
                                 }else {
@@ -291,18 +294,19 @@ impl MatchingEngine {
                         }
                         if remove_node {
                             orderbook.bid.price_map.pop_last();
-                            levels_touched += 1;
+                            levels_consumed += 1;
                         }
                     }
                     span.record("order_type", "market");
                     span.record("is_buy_side", false);
-                    span.record("levels_touched", levels_touched);
-                    span.record("orders_consumed", orders_consumed);
+                    span.record("levels_consumed", levels_consumed);
+                    span.record("orders_touched", orders_touched);
+                    Ok(None)
                 }
                 OrderType::Limit => {
                     let mut fill_quantity = order.initial_quantity;
-                    let mut levels_touched = 0;
-                    let mut orders_consumed = 0;
+                    let mut levels_consumed = 0;
+                    let mut orders_touched = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -322,7 +326,7 @@ impl MatchingEngine {
                                         let next = first_order_node.next;
                                         orderbook.bid.order_pool[head_idx] = None;
                                         orderbook.bid.free_list.push(head_idx);
-                                        orders_consumed += 1;
+                                        orders_touched += 1;
                                         if let Some(next_order_idx) = next {
                                             price_level.head = Some(next_order_idx);
                                         } else {
@@ -334,6 +338,7 @@ impl MatchingEngine {
                                         first_order_node.current_quantity -= fill_quantity;
                                         price_level.total_quantity -= fill_quantity;
                                         fill_quantity = 0;
+                                        orders_touched += 1;
                                         span.record("filled", true);
                                     }
                                 }else {
@@ -344,7 +349,7 @@ impl MatchingEngine {
                         }
                         if remove_node {
                             orderbook.bid.price_map.pop_last();
-                            levels_touched += 1;
+                            levels_consumed += 1;
                         }
                     }
                     if fill_quantity > 0 {
@@ -366,9 +371,11 @@ impl MatchingEngine {
                         self._global_registry.insert(order.engine_order_id, order_location);
                         span.record("order_type", "limit");
                         span.record("is_buy_side", false);
-                        span.record("levels_touched", levels_touched);
-                        span.record("orders_consumed", orders_consumed);
+                        span.record("levels_consumed", levels_consumed);
+                        span.record("orders_touched", orders_touched);
+                        return Ok(Some(alloted_index))
                     }
+                    Ok(None)
                 }
             }
         } else {
@@ -376,8 +383,8 @@ impl MatchingEngine {
                 OrderType::Market(None) => {
                     // need to immediatly execute the order on the best of other half
                     let mut fill_quantity = order.initial_quantity;
-                    let mut levels_touched = 0;
-                    let mut orders_consumed = 0;
+                    let mut levels_consumed = 0;
+                    let mut orders_touched = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -395,7 +402,7 @@ impl MatchingEngine {
                                         let next = first_order_node.next;
                                         orderbook.ask.order_pool[head_idx] = None;
                                         orderbook.ask.free_list.push(head_idx);
-                                        orders_consumed += 1;
+                                        orders_touched += 1;
                                         if let Some(next_order_idx) = next {
                                             price_level.head = Some(next_order_idx);
                                         } else {
@@ -407,6 +414,7 @@ impl MatchingEngine {
                                         first_order_node.current_quantity -= fill_quantity;
                                         price_level.total_quantity -= fill_quantity;
                                         fill_quantity = 0;
+                                        orders_touched += 1;
                                         span.record("filled", true);
                                     }
                                 }
@@ -418,18 +426,19 @@ impl MatchingEngine {
                         }
                         if remove_node {
                             orderbook.bid.price_map.pop_first();
-                            levels_touched += 1;
+                            levels_consumed += 1;
                         }
                     }
                     span.record("order_type", "market");
                     span.record("is_buy_side", true);
-                    span.record("levels_touched", levels_touched);
-                    span.record("orders_consumed", orders_consumed);
+                    span.record("levels_consumed", levels_consumed);
+                    span.record("orders_touched", orders_touched);
+                    Ok(None)
                 }
                 OrderType::Market(market_limit) => {
                     let mut fill_quantity = order.initial_quantity;
-                    let mut levels_touched = 0;
-                    let mut orders_consumed = 0;
+                    let mut levels_consumed = 0;
+                    let mut orders_touched = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -451,7 +460,7 @@ impl MatchingEngine {
                                         let next = first_order_node.next;
                                         orderbook.ask.order_pool[head_idx] = None;
                                         orderbook.ask.free_list.push(head_idx);
-                                        orders_consumed += 1;
+                                        orders_touched += 1;
                                         if let Some(next_order_idx) = next {
                                             price_level.head = Some(next_order_idx);
                                         } else {
@@ -464,6 +473,7 @@ impl MatchingEngine {
                                         first_order_node.current_quantity -= fill_quantity;
                                         price_level.total_quantity -= fill_quantity;
                                         fill_quantity = 0;
+                                        orders_touched += 1;
                                         span.record("filled", true);
                                     }
                                 }
@@ -475,18 +485,19 @@ impl MatchingEngine {
                         }
                         if remove_node {
                             orderbook.bid.price_map.pop_first();
-                            levels_touched += 1;
+                            levels_consumed += 1;
                         }
                     }
                     span.record("order_type", "market");
                     span.record("is_buy_side", true);
-                    span.record("levels_touched", levels_touched);
-                    span.record("orders_consumed", orders_consumed);
+                    span.record("levels_consumed", levels_consumed);
+                    span.record("orders_touched", orders_touched);
+                    Ok(None)
                 }
                 OrderType::Limit => {
                     let mut fill_quantity = order.initial_quantity;
-                    let mut levels_touched = 0;
-                    let mut orders_consumed = 0;
+                    let mut levels_consumed = 0;
+                    let mut orders_touched = 0;
                     while fill_quantity > 0 {
                         let remove_node: bool;
                         {
@@ -507,7 +518,7 @@ impl MatchingEngine {
                                         let next = first_order_node.next;
                                         orderbook.ask.order_pool[head_idx] = None;
                                         orderbook.ask.free_list.push(head_idx);
-                                        orders_consumed += 1;
+                                        orders_touched += 1;
                                         if let Some(next_order_idx) = next {
                                             price_level.head = Some(next_order_idx);
                                         } else {
@@ -519,6 +530,7 @@ impl MatchingEngine {
                                         first_order_node.current_quantity -= fill_quantity;
                                         price_level.total_quantity -= fill_quantity;
                                         fill_quantity = 0;
+                                        orders_touched += 1;
                                         span.record("filled", true);
                                     }
                                 }else {
@@ -529,7 +541,7 @@ impl MatchingEngine {
                         }
                         if remove_node {
                             orderbook.bid.price_map.pop_first();
-                            levels_touched += 1;
+                            levels_consumed += 1;
                         }
                     }
                     if fill_quantity > 0{
@@ -551,12 +563,13 @@ impl MatchingEngine {
                         self._global_registry.insert(order.engine_order_id, order_location);
                         span.record("order_type", "limit");
                         span.record("is_buy_side", true);
-                        span.record("levels_touched", levels_touched);
-                        span.record("orders_consumed", orders_consumed);
+                        span.record("levels_consumed", levels_consumed);
+                        span.record("orders_touched", orders_touched);
+                        return Ok(Some(alloted_index))
                     }
+                    Ok(None)
                 }
             }
         }
-        Ok(())
     }
 }
