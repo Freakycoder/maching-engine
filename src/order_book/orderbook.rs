@@ -6,13 +6,12 @@ use crate::order_book::types::{BookDepth, CancelOrder, ModifyOrder, ModifyOutcom
 
 #[derive(Debug)]
 pub struct OrderBook{
-    pub security_id : u32,
     pub ask : HalfBook,
     pub bid : HalfBook
 }
 impl OrderBook {
-    pub fn new (security_id : u32,) -> Self{
-        Self { security_id , ask : HalfBook::new(), bid : HalfBook::new() }
+    pub fn new () -> Self{
+        Self { ask : HalfBook::new(), bid : HalfBook::new() }
     }
 
     #[instrument( // used for auto span creation & drop.
@@ -160,9 +159,9 @@ impl OrderBook {
     )]
     pub fn cancel_order(&mut self, order_id : Uuid, order : CancelOrder) -> Result<(), anyhow::Error>{
         if order.is_buy_side {
-                    let (prev, next) = {
+                    let (prev, next, old_price, old_quantity) = {
                         let node = self.bid.order_pool[order.order_index].as_ref().unwrap();
-                        (node.prev, node.next)
+                        (node.prev, node.next, node.market_limit, node.current_quantity)
                     };
                     if let Some(prev_index) = prev{
                         if let Some(possible_prev_node) = self.bid.order_pool.get_mut(prev_index){
@@ -178,13 +177,21 @@ impl OrderBook {
                             }
                         }
                     }
-                    self.bid.order_pool.insert(order.order_index, None);
-                    self.bid.free_list.push(order.order_index);
+                    if let Some(node) = self.bid.price_map.get_mut(&old_price){
+                        node.total_quantity -= old_quantity;
+                        node.order_count -= 1;
+                        self.bid.order_pool.insert(order.order_index, None);
+                        self.bid.free_list.push(order.order_index);
+                        return Ok(())
+                    }
+                    else {
+                        return Err(anyhow::anyhow!("unable to get old price node to perform cancellation"));
+                    }
                
         } else {
-                    let (prev, next) = {
+                    let (prev, next, old_price, old_quantity) = {
                         let node = self.ask.order_pool[order.order_index].as_ref().unwrap();
-                        (node.prev, node.next)
+                        (node.prev, node.next, node.market_limit, node.current_quantity)
                     };
                     if let Some(prev_index) = prev{
                         if let Some(possible_prev_node) = self.ask.order_pool.get_mut(prev_index){
@@ -200,10 +207,17 @@ impl OrderBook {
                             }
                         }
                     }
-                self.ask.order_pool.insert(order.order_index, None);
-                self.ask.free_list.push(order.order_index);
+                    if let Some(node) = self.ask.price_map.get_mut(&old_price){
+                        node.total_quantity -= old_quantity;
+                        node.order_count -= 1;
+                        self.ask.order_pool.insert(order.order_index, None);
+                        self.ask.free_list.push(order.order_index);
+                        return Ok(())
+                    }
+                    else {
+                        return Err(anyhow::anyhow!("unable to get old price node to perform cancellation"));
+                    }
         }
-        Ok(())
     }
 
     #[instrument( 
