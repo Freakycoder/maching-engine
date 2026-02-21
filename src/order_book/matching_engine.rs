@@ -188,7 +188,7 @@ impl MatchingEngine {
                 orderbook
             }
             None => {
-                self._book.entry(order.security_id).or_insert(OrderBook::new(1))
+                self._book.entry(order.security_id).or_insert(OrderBook::new())
             }
         };
 
