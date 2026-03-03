@@ -224,6 +224,9 @@ impl MatchingEngine {
                                         } else {
                                             span.record("reason", "exhausted");
                                             price_level.total_quantity = 0;
+                                            price_level.head = None;
+                                            price_level.tail = None;
+                                            price_level.order_count = 0;
                                             break;
                                         }
                                     } else {
@@ -234,14 +237,21 @@ impl MatchingEngine {
                                         span.record("filled", true);
                                     }
                                 }else {
+                                    // price level has no head. i.e head = None
                                     break;
                                 }
                             }
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node {
-                            orderbook.bid.price_map.pop_last();
-                            levels_consumed += 1;
+                            match orderbook.bid.price_map.pop_last(){
+                                Some(_) => {
+                                    levels_consumed += 1;
+                                }
+                                None => {
+                                    break;
+                                }
+                            };
                         }
                     }
                     span.record("order_type", "market");
@@ -281,6 +291,9 @@ impl MatchingEngine {
                                         } else {
                                             span.record("reason", "exhausted");
                                             price_level.total_quantity = 0;
+                                            price_level.head = None;
+                                            price_level.tail = None;
+                                            price_level.order_count = 0;
                                             break;
                                         }
                                     } else {
@@ -297,8 +310,14 @@ impl MatchingEngine {
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node {
-                            orderbook.bid.price_map.pop_last();
-                            levels_consumed += 1;
+                            match orderbook.bid.price_map.pop_last(){
+                                Some(_) => {
+                                    levels_consumed += 1;
+                                }
+                                None => {
+                                    break;
+                                }
+                            };
                         }
                     }
                     span.record("order_type", "market");
@@ -336,6 +355,9 @@ impl MatchingEngine {
                                         } else {
                                             span.record("reason", "partially_filled");
                                             price_level.total_quantity = 0;
+                                            price_level.head = None;
+                                            price_level.tail = None;
+                                            price_level.order_count = 0;
                                             break;
                                         }
                                     } else {
@@ -352,8 +374,14 @@ impl MatchingEngine {
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node {
-                            orderbook.bid.price_map.pop_last();
-                            levels_consumed += 1;
+                            match orderbook.bid.price_map.pop_last(){
+                                Some(_) => {
+                                    levels_consumed += 1;
+                                }
+                                None => {
+                                    break;
+                                }
+                            };
                         }
                     }
                     if fill_quantity > 0 {
@@ -412,6 +440,9 @@ impl MatchingEngine {
                                         } else {
                                             span.record("reason", "exhausted");
                                             price_level.total_quantity = 0;
+                                            price_level.head = None;
+                                            price_level.tail = None;
+                                            price_level.order_count = 0;
                                             break;
                                         }
                                     } else {
@@ -429,8 +460,14 @@ impl MatchingEngine {
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node {
-                            orderbook.bid.price_map.pop_first();
-                            levels_consumed += 1;
+                            match orderbook.ask.price_map.pop_first(){
+                                Some(_) => {
+                                    levels_consumed += 1;
+                                }
+                                None => {
+                                    break;
+                                }
+                            };
                         }
                     }
                     span.record("order_type", "market");
@@ -471,6 +508,9 @@ impl MatchingEngine {
                                             span.record("reason", "exhausted");
                                             price_level.head = None;
                                             price_level.total_quantity = 0;
+                                            price_level.head = None;
+                                            price_level.tail = None;
+                                            price_level.order_count = 0;
                                             break;
                                         }
                                     } else {
@@ -488,8 +528,14 @@ impl MatchingEngine {
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node {
-                            orderbook.bid.price_map.pop_first();
-                            levels_consumed += 1;
+                            match orderbook.ask.price_map.pop_first(){
+                                Some(_) => {
+                                    levels_consumed += 1;
+                                }
+                                None => {
+                                    break;
+                                }
+                            };
                         }
                     }
                     span.record("order_type", "market");
@@ -528,6 +574,9 @@ impl MatchingEngine {
                                         } else {
                                             span.record("reason", "partially_filled");
                                             price_level.total_quantity = 0;
+                                            price_level.head = None;
+                                            price_level.tail = None;
+                                            price_level.order_count = 0;
                                             break;
                                         }
                                     } else {
@@ -544,8 +593,14 @@ impl MatchingEngine {
                             remove_node = price_level.total_quantity == 0;
                         }
                         if remove_node {
-                            orderbook.bid.price_map.pop_first();
-                            levels_consumed += 1;
+                            match orderbook.ask.price_map.pop_first(){
+                                Some(_) => {
+                                    levels_consumed += 1;
+                                }
+                                None => {
+                                    break;
+                                }
+                            };
                         }
                     }
                     if fill_quantity > 0{
