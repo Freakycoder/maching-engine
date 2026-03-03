@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, btree_map::{Entry}};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -28,31 +28,41 @@ impl OrderBook {
         let mut order = resting_order;
         let order_quantity = order.current_quantity;
         let price = order.market_limit;
-        
-        if let Some(price_level) = self.bid.price_map.get_mut(&price){
-            order.prev = price_level.tail;
-            if let Some(free_index) = self.bid.free_list.pop(){
-                self.bid.order_pool.insert(free_index, Some(order));
-                let prev_tail_idx = price_level.tail.unwrap();
-                price_level.tail = Some(free_index);
+
+        match self.bid.price_map.entry(price){ // here price is not moved, bcoz u32 implements Copy
+            Entry::Occupied(mut entry) => {
+                let price_level = entry.get_mut();
+                if price_level.total_quantity == 0 || price_level.head == None || price_level.tail == None{
+                    entry.remove();
+                } else {
+                     order.prev = price_level.tail;
+                if let Some(free_index) = self.bid.free_list.pop(){
+                    self.bid.order_pool.insert(free_index, Some(order));
+                    let prev_tail_idx = price_level.tail.unwrap();
+                    price_level.tail = Some(free_index);
+                    price_level.total_quantity += order_quantity;
+                    price_level.order_count += 1;
+                        if let Some(prev_order) = self.bid.order_pool.get_mut(prev_tail_idx).unwrap(){
+                            prev_order.next = Some(free_index);
+                        };
+                    return Ok(free_index);
+                }
+                else {
+                self.bid.order_pool.push(Some(order));
+                let new_tail = self.bid.order_pool.len() - 1;
+                let pre_tail_idx = price_level.tail.unwrap();
+                price_level.tail = Some(new_tail);
                 price_level.total_quantity += order_quantity;
                 price_level.order_count += 1;
-                    if let Some(prev_order) = self.bid.order_pool.get_mut(prev_tail_idx).unwrap(){
-                        prev_order.next = Some(free_index);
-                    };
-                return Ok(free_index);
+                if let Some(prev_order) = self.bid.order_pool.get_mut(pre_tail_idx).unwrap(){
+                    prev_order.next = Some(new_tail);
+                };
+                return Ok(new_tail);
+                }
+                }
             }
-            else {
-            self.bid.order_pool.push(Some(order));
-            let new_tail = self.bid.order_pool.len() - 1;
-            let pre_tail_idx = price_level.tail.unwrap();
-            price_level.tail = Some(new_tail);
-            price_level.total_quantity += order_quantity;
-            price_level.order_count += 1;
-            if let Some(prev_order) = self.bid.order_pool.get_mut(pre_tail_idx).unwrap(){
-                prev_order.next = Some(new_tail);
-            };
-            return Ok(new_tail);
+            Entry::Vacant(_) => {
+                // it means price_level doesn't exist. we create below
             }
         }
 
@@ -95,34 +105,44 @@ impl OrderBook {
         let mut order = resting_order;
         let order_quantity = order.current_quantity;
         let price = order.market_limit;
-        
-        if let Some(price_level) = self.ask.price_map.get_mut(&price){
-            order.prev = price_level.tail;
-            if let Some(free_index) = self.ask.free_list.pop(){
-                self.ask.order_pool.insert(free_index, Some(order));
+
+        match self.ask.price_map.entry(price){
+            Entry::Occupied(mut entry) => {
+                let price_level = entry.get_mut();
+                if price_level.total_quantity == 0 || price_level.head == None || price_level.tail == None{
+                    entry.remove();
+                }else {
+                    order.prev = price_level.tail;
+                if let Some(free_index) = self.ask.free_list.pop(){
+                    self.ask.order_pool.insert(free_index, Some(order));
+                    let prev_tail_idx = price_level.tail.unwrap();
+                    price_level.tail = Some(free_index);
+                    price_level.total_quantity += order_quantity;
+                    price_level.order_count += 1;
+                    if let Some(prev_order) = self.ask.order_pool.get_mut(prev_tail_idx).unwrap(){
+                        prev_order.next = Some(free_index);
+                    };
+                    return Ok(free_index);
+                }
+                else {
+                self.ask.order_pool.push(Some(order));
+                let new_tail = self.ask.order_pool.len() - 1;
                 let prev_tail_idx = price_level.tail.unwrap();
-                price_level.tail = Some(free_index);
+                price_level.tail = Some(new_tail);
                 price_level.total_quantity += order_quantity;
                 price_level.order_count += 1;
                 if let Some(prev_order) = self.ask.order_pool.get_mut(prev_tail_idx).unwrap(){
-                    prev_order.next = Some(free_index);
+                    prev_order.next = Some(new_tail);
                 };
-                return Ok(free_index);
+                return Ok(new_tail);
+                }
+                }
             }
-            else {
-            self.ask.order_pool.push(Some(order));
-            let new_tail = self.ask.order_pool.len() - 1;
-            let prev_tail_idx = price_level.tail.unwrap();
-            price_level.tail = Some(new_tail);
-            price_level.total_quantity += order_quantity;
-            price_level.order_count += 1;
-            if let Some(prev_order) = self.ask.order_pool.get_mut(prev_tail_idx).unwrap(){
-                prev_order.next = Some(new_tail);
-            };
-            return Ok(new_tail);
+            Entry::Vacant(_) => {
+                //do nothing
             }
         }
-
+        
         let mut new_price_level = PriceLevel{
             head : None,
             tail : None,
