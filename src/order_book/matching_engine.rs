@@ -210,32 +210,39 @@ impl MatchingEngine {
                             while price_level.total_quantity > 0 && fill_quantity > 0 {
                                 if let Some(head_idx) = price_level.head{
 
-                                    let first_order_node =
-                                        orderbook.bid.order_pool[head_idx].as_mut().unwrap();
-                                    if fill_quantity >= first_order_node.current_quantity {
-                                        fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity -= first_order_node.current_quantity;
-                                        let next = first_order_node.next;
-                                        orderbook.bid.order_pool[head_idx] = None;
-                                        orderbook.bid.free_list.push(head_idx);
-                                        orders_touched += 1;
-                                        if let Some(next_order_idx) = next {
-                                            price_level.head = Some(next_order_idx);
-                                        } else {
-                                            span.record("reason", "exhausted");
-                                            price_level.total_quantity = 0;
-                                            price_level.head = None;
-                                            price_level.tail = None;
-                                            price_level.order_count = 0;
-                                            break;
+                                    match orderbook.bid.order_pool[head_idx].as_mut(){
+                                        Some(first_order_node) => {
+
+                                            if fill_quantity >= first_order_node.current_quantity {
+                                                fill_quantity -= first_order_node.current_quantity;
+                                                
+                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                let next = first_order_node.next;
+                                                orderbook.bid.order_pool[head_idx] = None;
+                                                orderbook.bid.free_list.push(head_idx);
+                                                orders_touched += 1;
+                                                if let Some(next_order_idx) = next {
+                                                    price_level.head = Some(next_order_idx);
+                                                } else {
+                                                    span.record("reason", "exhausted");
+                                                    price_level.total_quantity = 0;
+                                                    price_level.head = None;
+                                                    price_level.tail = None;
+                                                    price_level.order_count = 0;
+                                                    break;
+                                                }
+                                            } else {
+                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                fill_quantity = 0;
+                                                orders_touched += 1;
+                                                span.record("filled", true);
+                                            }
                                         }
-                                    } else {
-                                        first_order_node.current_quantity -= fill_quantity;
-                                        price_level.total_quantity -= fill_quantity;
-                                        fill_quantity = 0;
-                                        orders_touched += 1;
-                                        span.record("filled", true);
-                                    }
+                                        None => {
+                                            return Err(anyhow!("failed to get head_idx from order pool"));
+                                        }
+                                    };
                                 }else {
                                     // price level has no head. i.e head = None
                                     break;
@@ -270,39 +277,53 @@ impl MatchingEngine {
                             let Some(mut price_node) = orderbook.bid.price_map.last_entry() else {
                                 break;
                             };
-                            if market_limit.unwrap() > *price_node.key() {
-                                break;
+
+                            match market_limit {
+                                Some(price) => {
+                                    if price > *price_node.key(){
+                                        break;
+                                    }
+                                }
+                                None => {
+                                    return Err(anyhow!("did not recieve price for market-limit(SELL)"))
+                                }
                             }
                             let price_level = price_node.get_mut();
                             while price_level.total_quantity > 0 && fill_quantity > 0 {
                                 if let Some(head_idx) = price_level.head{
 
-                                    let first_order_node =
-                                        orderbook.bid.order_pool[head_idx].as_mut().unwrap();
-                                    if fill_quantity >= first_order_node.current_quantity {
-                                        fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity -= first_order_node.current_quantity;
-                                        let next = first_order_node.next;
-                                        orderbook.bid.order_pool[head_idx] = None;
-                                        orderbook.bid.free_list.push(head_idx);
-                                        orders_touched += 1;
-                                        if let Some(next_order_idx) = next {
-                                            price_level.head = Some(next_order_idx);
-                                        } else {
-                                            span.record("reason", "exhausted");
-                                            price_level.total_quantity = 0;
-                                            price_level.head = None;
-                                            price_level.tail = None;
-                                            price_level.order_count = 0;
-                                            break;
+                                    match orderbook.bid.order_pool[head_idx].as_mut(){
+                                        Some(first_order_node) => {
+
+                                            if fill_quantity >= first_order_node.current_quantity {
+                                                fill_quantity -= first_order_node.current_quantity;
+                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                let next = first_order_node.next;
+                                                orderbook.bid.order_pool[head_idx] = None;
+                                                orderbook.bid.free_list.push(head_idx);
+                                                orders_touched += 1;
+                                                if let Some(next_order_idx) = next {
+                                                    price_level.head = Some(next_order_idx);
+                                                } else {
+                                                    span.record("reason", "exhausted");
+                                                    price_level.total_quantity = 0;
+                                                    price_level.head = None;
+                                                    price_level.tail = None;
+                                                    price_level.order_count = 0;
+                                                    break;
+                                                }
+                                            } else {
+                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                fill_quantity = 0;
+                                                orders_touched += 1;
+                                                span.record("filled", true);
+                                            }
                                         }
-                                    } else {
-                                        first_order_node.current_quantity -= fill_quantity;
-                                        price_level.total_quantity -= fill_quantity;
-                                        fill_quantity = 0;
-                                        orders_touched += 1;
-                                        span.record("filled", true);
-                                    }
+                                        None => {
+                                            return Err(anyhow!("failed to get head_idx from order pool"));
+                                        }
+                                    };
                                 }else {
                                     break;
                                 }
@@ -336,16 +357,25 @@ impl MatchingEngine {
                             let Some(mut price_node) = orderbook.bid.price_map.last_entry() else {
                                 break;
                             };
-                            if order.price > Some(*price_node.key()) {
-                                break;
+
+                            match order.price {
+                                Some(price) => {
+                                    if price > *price_node.key(){
+                                        break;
+                                    }
+                                }
+                                None => {
+                                    return Err(anyhow!("did not recieve price for limit order (SELL)"))
+                                }
                             }
                             let price_level = price_node.get_mut();
                             while price_level.total_quantity > 0 && fill_quantity > 0 {
                                 if let Some(head_idx) = price_level.head{
-                                    let first_order_node = orderbook.bid.order_pool[head_idx].as_mut().unwrap();
-                                    if fill_quantity >= first_order_node.current_quantity {
+                                    match orderbook.bid.order_pool[head_idx].as_mut(){
+                                        Some(first_order_node) => {
+                                            if fill_quantity >= first_order_node.current_quantity {
                                         fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity -= first_order_node.current_quantity;
+                                        price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                         let next = first_order_node.next;
                                         orderbook.bid.order_pool[head_idx] = None;
                                         orderbook.bid.free_list.push(head_idx);
@@ -361,12 +391,17 @@ impl MatchingEngine {
                                             break;
                                         }
                                     } else {
-                                        first_order_node.current_quantity -= fill_quantity;
-                                        price_level.total_quantity -= fill_quantity;
+                                        first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                        price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                         fill_quantity = 0;
                                         orders_touched += 1;
                                         span.record("filled", true);
                                     }
+                                        }
+                                        None => {
+                                            return Err(anyhow!("failed to get head_idx from order pool"));
+                                        }
+                                    };
                                 }else {
                                     break;
                                 }
@@ -426,32 +461,38 @@ impl MatchingEngine {
                             let price_level = price_node.get_mut();
                             while price_level.total_quantity > 0 && fill_quantity > 0 {
                                 if let Some(head_idx) = price_level.head{
-                                    let first_order_node =
-                                        orderbook.ask.order_pool[head_idx].as_mut().unwrap();
-                                    if fill_quantity >= first_order_node.current_quantity {
-                                        fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity -= first_order_node.current_quantity;
-                                        let next = first_order_node.next;
-                                        orderbook.ask.order_pool[head_idx] = None;
-                                        orderbook.ask.free_list.push(head_idx);
-                                        orders_touched += 1;
-                                        if let Some(next_order_idx) = next {
-                                            price_level.head = Some(next_order_idx);
-                                        } else {
-                                            span.record("reason", "exhausted");
-                                            price_level.total_quantity = 0;
-                                            price_level.head = None;
-                                            price_level.tail = None;
-                                            price_level.order_count = 0;
-                                            break;
+                                    match orderbook.ask.order_pool[head_idx].as_mut(){
+                                        Some(first_order_node) => {
+
+                                            if fill_quantity >= first_order_node.current_quantity {
+                                                fill_quantity -= first_order_node.current_quantity;
+                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                let next = first_order_node.next;
+                                                orderbook.ask.order_pool[head_idx] = None;
+                                                orderbook.ask.free_list.push(head_idx);
+                                                orders_touched += 1;
+                                                if let Some(next_order_idx) = next {
+                                                    price_level.head = Some(next_order_idx);
+                                                } else {
+                                                    span.record("reason", "exhausted");
+                                                    price_level.total_quantity = 0;
+                                                    price_level.head = None;
+                                                    price_level.tail = None;
+                                                    price_level.order_count = 0;
+                                                    break;
+                                                }
+                                            } else {
+                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                fill_quantity = 0;
+                                                orders_touched += 1;
+                                                span.record("filled", true);
+                                            }
                                         }
-                                    } else {
-                                        first_order_node.current_quantity -= fill_quantity;
-                                        price_level.total_quantity -= fill_quantity;
-                                        fill_quantity = 0;
-                                        orders_touched += 1;
-                                        span.record("filled", true);
-                                    }
+                                        None => {
+                                            return Err(anyhow!("failed to get head_idx from order pool"));
+                                        }
+                                    };
                                 }
                                 else {
                                     break;
@@ -486,40 +527,54 @@ impl MatchingEngine {
                             let Some(mut price_node) = orderbook.ask.price_map.first_entry() else {
                                 break;
                             };
-                            if market_limit.unwrap() < *price_node.key() {
-                                break;
+
+                            match market_limit {
+                                Some(price) => {
+                                    if price < *price_node.key(){
+                                        break;
+                                    }
+                                }
+                                None => {
+                                    return Err(anyhow!("did not recieve price for market-limit(BUY)"))
+                                }
                             }
                             let price_level = price_node.get_mut();
                             while price_level.total_quantity > 0 && fill_quantity > 0 {
                                 let head_pointer = price_level.head;
                                 if let Some(head_idx) = head_pointer{
-                                    let first_order_node =
-                                        orderbook.ask.order_pool[head_idx].as_mut().unwrap();
-                                    if fill_quantity >= first_order_node.current_quantity {
-                                        fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity -= first_order_node.current_quantity;
-                                        let next = first_order_node.next;
-                                        orderbook.ask.order_pool[head_idx] = None;
-                                        orderbook.ask.free_list.push(head_idx);
-                                        orders_touched += 1;
-                                        if let Some(next_order_idx) = next {
-                                            price_level.head = Some(next_order_idx);
-                                        } else {
-                                            span.record("reason", "exhausted");
-                                            price_level.head = None;
-                                            price_level.total_quantity = 0;
-                                            price_level.head = None;
-                                            price_level.tail = None;
-                                            price_level.order_count = 0;
-                                            break;
+                                    match orderbook.ask.order_pool[head_idx].as_mut(){
+                                        Some(first_order_node) => {
+
+                                            if fill_quantity >= first_order_node.current_quantity {
+                                                fill_quantity -= first_order_node.current_quantity;
+                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                let next = first_order_node.next;
+                                                orderbook.ask.order_pool[head_idx] = None;
+                                                orderbook.ask.free_list.push(head_idx);
+                                                orders_touched += 1;
+                                                if let Some(next_order_idx) = next {
+                                                    price_level.head = Some(next_order_idx);
+                                                } else {
+                                                    span.record("reason", "exhausted");
+                                                    price_level.head = None;
+                                                    price_level.total_quantity = 0;
+                                                    price_level.head = None;
+                                                    price_level.tail = None;
+                                                    price_level.order_count = 0;
+                                                    break;
+                                                }
+                                            } else {
+                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                fill_quantity = 0;
+                                                orders_touched += 1;
+                                                span.record("filled", true);
+                                            }
                                         }
-                                    } else {
-                                        first_order_node.current_quantity -= fill_quantity;
-                                        price_level.total_quantity -= fill_quantity;
-                                        fill_quantity = 0;
-                                        orders_touched += 1;
-                                        span.record("filled", true);
-                                    }
+                                        None => {
+                                            return Err(anyhow!("failed to get head_idx from order pool"));
+                                        }
+                                    };
                                 }
                                 else {
                                     break;
@@ -554,38 +609,53 @@ impl MatchingEngine {
                             let Some(mut price_node) = orderbook.ask.price_map.first_entry() else {
                                 break;
                             };
-                            if order.price < Some(*price_node.key()) {
-                                break;
+
+                            match order.price {
+                                Some(price) => {
+                                    if price < *price_node.key(){
+                                        break;
+                                    }
+                                }
+                                None => {
+                                    return Err(anyhow!("did not recieve price for limit(BUY)"))
+                                }
                             }
                             let price_level = price_node.get_mut();
                             while price_level.total_quantity > 0 && fill_quantity > 0 {
                                 if let Some(head_idx) = price_level.head{
 
-                                    let first_order_node = orderbook.ask.order_pool[head_idx].as_mut().unwrap();
-                                    if fill_quantity >= first_order_node.current_quantity {
-                                        fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity -= first_order_node.current_quantity;
-                                        let next = first_order_node.next;
-                                        orderbook.ask.order_pool[head_idx] = None;
-                                        orderbook.ask.free_list.push(head_idx);
-                                        orders_touched += 1;
-                                        if let Some(next_order_idx) = next {
-                                            price_level.head = Some(next_order_idx);
-                                        } else {
-                                            span.record("reason", "partially_filled");
-                                            price_level.total_quantity = 0;
-                                            price_level.head = None;
-                                            price_level.tail = None;
-                                            price_level.order_count = 0;
-                                            break;
+                                    match orderbook.ask.order_pool[head_idx].as_mut(){
+                                        Some(first_order_node) => {
+
+                                            if fill_quantity >= first_order_node.current_quantity {
+                                                fill_quantity -= first_order_node.current_quantity;
+                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                let next = first_order_node.next;
+                                                orderbook.ask.order_pool[head_idx] = None;
+                                                orderbook.ask.free_list.push(head_idx);
+                                                orders_touched += 1;
+                                                if let Some(next_order_idx) = next {
+                                                    price_level.head = Some(next_order_idx);
+                                                } else {
+                                                    span.record("reason", "partially_filled");
+                                                    price_level.total_quantity = 0;
+                                                    price_level.head = None;
+                                                    price_level.tail = None;
+                                                    price_level.order_count = 0;
+                                                    break;
+                                                }
+                                            } else {
+                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                fill_quantity = 0;
+                                                orders_touched += 1;
+                                                span.record("filled", true);
+                                            }
                                         }
-                                    } else {
-                                        first_order_node.current_quantity -= fill_quantity;
-                                        price_level.total_quantity -= fill_quantity;
-                                        fill_quantity = 0;
-                                        orders_touched += 1;
-                                        span.record("filled", true);
-                                    }
+                                        None => {
+                                            return Err(anyhow!("failed to get head_idx from order pool"));
+                                        }
+                                    };
                                 }else {
                                     break;
                                 }
