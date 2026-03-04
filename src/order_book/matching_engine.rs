@@ -216,7 +216,7 @@ impl MatchingEngine {
                                             if fill_quantity >= first_order_node.current_quantity {
                                                 fill_quantity -= first_order_node.current_quantity;
                                                 
-                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                                 let next = first_order_node.next;
                                                 orderbook.bid.order_pool[head_idx] = None;
                                                 orderbook.bid.free_list.push(head_idx);
@@ -232,8 +232,8 @@ impl MatchingEngine {
                                                     break;
                                                 }
                                             } else {
-                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
-                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                first_order_node.current_quantity = first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                                 fill_quantity = 0;
                                                 orders_touched += 1;
                                                 span.record("filled", true);
@@ -297,7 +297,7 @@ impl MatchingEngine {
 
                                             if fill_quantity >= first_order_node.current_quantity {
                                                 fill_quantity -= first_order_node.current_quantity;
-                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                                 let next = first_order_node.next;
                                                 orderbook.bid.order_pool[head_idx] = None;
                                                 orderbook.bid.free_list.push(head_idx);
@@ -313,8 +313,8 @@ impl MatchingEngine {
                                                     break;
                                                 }
                                             } else {
-                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
-                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                first_order_node.current_quantity = first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                                 fill_quantity = 0;
                                                 orders_touched += 1;
                                                 span.record("filled", true);
@@ -375,7 +375,7 @@ impl MatchingEngine {
                                         Some(first_order_node) => {
                                             if fill_quantity >= first_order_node.current_quantity {
                                         fill_quantity -= first_order_node.current_quantity;
-                                        price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                        price_level.total_quantity = price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                         let next = first_order_node.next;
                                         orderbook.bid.order_pool[head_idx] = None;
                                         orderbook.bid.free_list.push(head_idx);
@@ -391,8 +391,8 @@ impl MatchingEngine {
                                             break;
                                         }
                                     } else {
-                                        first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
-                                        price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                        first_order_node.current_quantity = first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                        price_level.total_quantity = price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                         fill_quantity = 0;
                                         orders_touched += 1;
                                         span.record("filled", true);
@@ -466,7 +466,7 @@ impl MatchingEngine {
 
                                             if fill_quantity >= first_order_node.current_quantity {
                                                 fill_quantity -= first_order_node.current_quantity;
-                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                                 let next = first_order_node.next;
                                                 orderbook.ask.order_pool[head_idx] = None;
                                                 orderbook.ask.free_list.push(head_idx);
@@ -482,8 +482,8 @@ impl MatchingEngine {
                                                     break;
                                                 }
                                             } else {
-                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
-                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                first_order_node.current_quantity = first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                                 fill_quantity = 0;
                                                 orders_touched += 1;
                                                 span.record("filled", true);
@@ -547,7 +547,7 @@ impl MatchingEngine {
 
                                             if fill_quantity >= first_order_node.current_quantity {
                                                 fill_quantity -= first_order_node.current_quantity;
-                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                                 let next = first_order_node.next;
                                                 orderbook.ask.order_pool[head_idx] = None;
                                                 orderbook.ask.free_list.push(head_idx);
@@ -564,8 +564,8 @@ impl MatchingEngine {
                                                     break;
                                                 }
                                             } else {
-                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
-                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                first_order_node.current_quantity = first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                                 fill_quantity = 0;
                                                 orders_touched += 1;
                                                 span.record("filled", true);
@@ -629,7 +629,7 @@ impl MatchingEngine {
 
                                             if fill_quantity >= first_order_node.current_quantity {
                                                 fill_quantity -= first_order_node.current_quantity;
-                                                price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(first_order_node.current_quantity).ok_or(anyhow!("error occured in sub of total qty - current qyt"))?;
                                                 let next = first_order_node.next;
                                                 orderbook.ask.order_pool[head_idx] = None;
                                                 orderbook.ask.free_list.push(head_idx);
@@ -645,8 +645,8 @@ impl MatchingEngine {
                                                     break;
                                                 }
                                             } else {
-                                                first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
-                                                price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
+                                                first_order_node.current_quantity = first_order_node.current_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fnq - fq"))?;
+                                                price_level.total_quantity = price_level.total_quantity.checked_sub(fill_quantity).ok_or(anyhow!("error occured subtracting fntq - fq"))?;
                                                 fill_quantity = 0;
                                                 orders_touched += 1;
                                                 span.record("filled", true);
