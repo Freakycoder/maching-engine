@@ -375,8 +375,14 @@ impl OrderBook {
     pub fn modify_order(&mut self, order_id : Uuid, order : ModifyOrder) -> Result<Option<ModifyOutcome>, anyhow::Error>{
         if order.is_buy_side{
                 let (old_initial_qty, old_current_qty, old_price) = {
-                    let node = self.bid.order_pool[order.order_index].as_ref().unwrap();
-                    (node.initial_quantity, node.current_quantity, node.market_limit)
+                    match self.bid.order_pool[order.order_index].as_ref(){
+                        Some(node) => {
+                            (node.initial_quantity, node.current_quantity, node.market_limit)
+                        }
+                        None => {
+                            return Err(anyhow!("order node not found at index for modification (buy)"));
+                        }
+                    }
                 };
                 if let Some(new_price) = order.new_price && let Some(new_qty) = order.new_quantity{
                     if new_price != old_price{
@@ -393,9 +399,15 @@ impl OrderBook {
                         return Ok(None);
                     }
                     else {
-                        let order_node = self.bid.order_pool[order.order_index].as_mut().unwrap();
-                        order_node.initial_quantity = new_qty;
-                        return Ok(Some(ModifyOutcome::Inplace));
+                        match self.bid.order_pool[order.order_index].as_mut(){
+                            Some(order_node) => {
+                                order_node.initial_quantity = new_qty;
+                                return Ok(Some(ModifyOutcome::Inplace));
+                            }
+                            None => {
+                                return Err(anyhow!("couldn't find order node to modify qty in-place (buy)"));
+                            }
+                        }
                     }
                 } else {
                     if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
@@ -405,8 +417,14 @@ impl OrderBook {
                 }
         } else {
                 let (old_initial_qty, old_current_qty, old_price) = {
-                    let node = self.ask.order_pool[order.order_index].as_ref().unwrap();
-                    (node.initial_quantity, node.current_quantity, node.market_limit)
+                    match self.ask.order_pool[order.order_index].as_ref(){
+                        Some(node) => {
+                            (node.initial_quantity, node.current_quantity, node.market_limit)
+                        }
+                        None => {
+                            return Err(anyhow!("order node not found at index for modification (sell)"));
+                        }
+                    }
                 };
 
                 if let Some(new_price) = order.new_price && let Some(new_qty) = order.new_quantity{
@@ -424,9 +442,15 @@ impl OrderBook {
                         return Ok(None);
                     }
                     else {
-                        let order_node = self.ask.order_pool[order.order_index].as_mut().unwrap();
-                        order_node.initial_quantity = new_qty;
-                        return Ok(Some(ModifyOutcome::Inplace));
+                        match self.ask.order_pool[order.order_index].as_mut(){
+                            Some(order_node) => {
+                                order_node.initial_quantity = new_qty;
+                                return Ok(Some(ModifyOutcome::Inplace));
+                            }
+                            None => {
+                                return Err(anyhow!("couldn't find order node to modify qty in-place (sell)"));
+                            }
+                        }
                     }
                 }else {
                     if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
