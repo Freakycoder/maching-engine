@@ -264,7 +264,7 @@ impl OrderBook {
                                 return Ok(());
                             }
                         } else {
-
+                            self.bid.price_map.remove(&old_price);
                             return Err(anyhow::anyhow!("head and tail corrupted so deleted"));
                         }
                     } else {
@@ -272,32 +272,94 @@ impl OrderBook {
                     }
         } else {
                     let (prev, next, old_price, old_quantity) = {
-                        let node = self.ask.order_pool[order.order_index].as_ref().unwrap();
-                        (node.prev, node.next, node.market_limit, node.current_quantity)
-                    };
-                    if let Some(prev_index) = prev{
-                        if let Some(possible_prev_node) = self.ask.order_pool.get_mut(prev_index){
-                            if let Some(prev_node) = possible_prev_node{
-                                prev_node.next = next
+                                match self.ask.order_pool[order.order_index].as_ref(){
+                                    Some(node) => {
+                                        (node.prev, node.next, node.market_limit, node.current_quantity)
+                                    }
+                                    None => {
+                                        return Err(anyhow!("order node doesn't exist at index for cancellation"));
+                                    }
+                                }
+                            };
+                    if let Some(price_level) = self.ask.price_map.get_mut(&old_price){
+
+                        if price_level.head.is_some() && price_level.tail.is_some(){
+                            if order.order_index == price_level.head.unwrap() && order.order_index == price_level.tail.unwrap(){
+                                self.ask.order_pool[order.order_index] = None;
+                                price_level.head = None;
+                                price_level.tail = None;
+                                price_level.total_quantity = price_level.total_quantity.checked_sub(old_quantity).ok_or(anyhow!("error in subtracting total qty in order cancellation"))?;
+                                price_level.order_count = price_level.order_count.checked_sub(1).ok_or(anyhow!("error is subtracting order qty in cancellation"))?;
+                                self.ask.free_list.push(order.order_index);
+                                return Ok(());
                             }
-                        }
-                    }
-                    if let Some(next_index) = next{
-                        if let Some(possible_next_node) = self.ask.order_pool.get_mut(next_index){
-                            if let Some(next_node) = possible_next_node{
-                                next_node.prev = prev
+                            else if order.order_index == price_level.tail.unwrap() {
+                               if let Some(prev_index) = prev{
+                                    if let Some(possible_prev_node) = self.ask.order_pool.get_mut(prev_index){
+                                        if let Some(prev_node) = possible_prev_node{
+                                            prev_node.next = None;
+                                            price_level.tail = Some(prev_index);
+                                        }           
+                                    }
+                                self.ask.order_pool[order.order_index] = None;
+                                price_level.total_quantity = price_level.total_quantity.checked_sub(old_quantity).ok_or(anyhow!("error in subtracting total qty in order cancellation"))?;
+                                price_level.order_count = price_level.order_count.checked_sub(1).ok_or(anyhow!("error is subtracting order qty in cancellation"))?;
+                                self.ask.free_list.push(order.order_index);
+                                return Ok(()); 
+                                } else {
+                                    return Err(anyhow!("no prev node found for deletion of tail node"));
+                                }
                             }
+                            else if order.order_index == price_level.head.unwrap() {
+                                if let Some(next_index) = next{
+                                    if let Some(possible_next_node) = self.ask.order_pool.get_mut(next_index){
+                                        if let Some(next_node) = possible_next_node{
+                                            next_node.prev = None;
+                                            price_level.head = Some(next_index);
+                                        }
+                                    }
+                                    self.ask.order_pool[order.order_index] = None;
+                                    price_level.total_quantity = price_level.total_quantity.checked_sub(old_quantity).ok_or(anyhow!("error in subtracting total qty in order cancellation"))?;
+                                    price_level.order_count = price_level.order_count.checked_sub(1).ok_or(anyhow!("error is subtracting order qty in cancellation"))?;
+                                    self.ask.free_list.push(order.order_index);
+                                    return Ok(());
+                                } else {
+                                    return Err(anyhow!("no next node found for deletion of head node"));
+                                }                    
+                            }
+                            else {
+                                if let Some(prev_index) = prev{
+                                    if let Some(possible_prev_node) = self.ask.order_pool.get_mut(prev_index){
+                                        if let Some(prev_node) = possible_prev_node{
+                                            prev_node.next = next
+                                        }
+                                    }
+                                }
+                                else {
+                                    return Err(anyhow!("no prev node found for deletion of middle node"));
+                                }
+                                if let Some(next_index) = next{
+                                    if let Some(possible_next_node) = self.ask.order_pool.get_mut(next_index){
+                                        if let Some(next_node) = possible_next_node{
+                                            next_node.prev = prev
+                                        }
+                                    }
+                                }
+                                else {
+                                    return Err(anyhow!("no next node found for deletion of middle node"));
+                                }
+                                self.ask.order_pool[order.order_index] = None;
+                                price_level.total_quantity = price_level.total_quantity.checked_sub(old_quantity).ok_or(anyhow!("error in subtracting total qty in order cancellation"))?;
+                                price_level.order_count = price_level.order_count.checked_sub(1).ok_or(anyhow!("error is subtracting order qty in cancellation"))?;
+                                self.ask.free_list.push(order.order_index);
+                                return Ok(());
+                            }
+                        } else {
+                            self.ask.price_map.remove(&old_price);
+                            return Err(anyhow::anyhow!("head and tail corrupted so deleted"));
                         }
-                    }
-                    if let Some(node) = self.ask.price_map.get_mut(&old_price){
-                        node.total_quantity -= old_quantity;
-                        node.order_count -= 1;
-                        self.ask.order_pool.insert(order.order_index, None);
-                        self.ask.free_list.push(order.order_index);
-                        return Ok(())
-                    }
-                    else {
-                        return Err(anyhow::anyhow!("unable to get old price node to perform cancellation"));
+                    } else {
+                        return Err(anyhow!("unable to get old price node to perform cancellation"));
                     }
         }
     }
