@@ -38,7 +38,7 @@ impl OrderBook {
                 } else {
                      order.prev = price_level.tail;
                 if let Some(free_index) = self.bid.free_list.pop(){
-                    self.bid.order_pool.insert(free_index, Some(order));
+                    self.bid.order_pool[free_index] = Some(order);
                     let prev_tail_idx = price_level.tail.unwrap();
                     price_level.tail = Some(free_index);
                     price_level.total_quantity += order_quantity;
@@ -74,7 +74,7 @@ impl OrderBook {
             total_quantity : 0
         };
         if let Some(free_index) = self.bid.free_list.pop(){
-            self.bid.order_pool.insert(free_index, Some(order));
+            self.bid.order_pool[free_index] = Some(order);
             new_price_level.head = Some(free_index);
             new_price_level.tail = Some(free_index);
             new_price_level.order_count += 1;
@@ -115,7 +115,7 @@ impl OrderBook {
                 }else {
                     order.prev = price_level.tail;
                 if let Some(free_index) = self.ask.free_list.pop(){
-                    self.ask.order_pool.insert(free_index, Some(order));
+                    self.ask.order_pool[free_index] = Some(order);
                     let prev_tail_idx = price_level.tail.unwrap();
                     price_level.tail = Some(free_index);
                     price_level.total_quantity += order_quantity;
@@ -151,7 +151,7 @@ impl OrderBook {
             total_quantity : 0
         };
         if let Some(free_index) = self.ask.free_list.pop(){
-            self.ask.order_pool.insert(free_index, Some(order));
+            self.ask.order_pool[free_index] = Some(order);
             new_price_level.head = Some(free_index);
             new_price_level.tail = Some(free_index);
             new_price_level.order_count += 1;
