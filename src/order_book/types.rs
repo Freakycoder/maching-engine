@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct OrderNode{
@@ -12,13 +11,13 @@ pub struct OrderNode{
 
 
 #[derive(Debug)]
-pub struct NewOrder{
-    pub engine_order_id : Uuid,
+pub struct EngineNewOrder{
+    pub engine_order_id : u64,
     pub price : Option<u32>, // price recieved over here are already in whole number
     pub initial_quantity : u32,
     pub current_quantity : u32,
     pub is_buy_side : bool,
-    pub security_id : Uuid,
+    pub security_id : u32,
     pub order_type : OrderType
 }
 
@@ -29,13 +28,13 @@ pub enum OrderType{
 }
 
 #[derive(Debug)]
-pub struct CancelOrder{
+pub struct EngineCancelOrder{
     pub is_buy_side : bool,
     pub order_index : usize
 }
 
 #[derive(Debug)]
-pub struct ModifyOrder{ //THINK ABOUT CANCEL AND NOT CANCEL SCENARIO
+pub struct EngineModifyOrder{ //THINK ABOUT CANCEL AND NOT CANCEL SCENARIO
     pub order_index : usize,
     pub is_buy_side : bool,
     pub new_price : Option<u32>,
@@ -44,23 +43,23 @@ pub struct ModifyOrder{ //THINK ABOUT CANCEL AND NOT CANCEL SCENARIO
 
 #[derive(Debug)]
 pub struct OrderRegistry{
-    _asset_view : HashMap<Uuid, usize>
+    _asset_view : HashMap<u64, usize>
 }
 
 impl OrderRegistry {
     pub fn new() -> Self{
         Self { _asset_view: HashMap::new() }
     }
-    pub fn insert(&mut self, order_id : Uuid, idx : usize) -> Option<usize>{
+    pub fn insert(&mut self, order_id : u64, idx : usize) -> Option<usize>{
         self._asset_view.insert(order_id, idx)
     }
-    pub fn order_exist(&self, order_id : Uuid) -> bool{
+    pub fn order_exist(&self, order_id : u64) -> bool{
         self._asset_view.contains_key(&order_id)
     }
-    pub fn get_idx(&self, order_id : Uuid) -> &usize{
+    pub fn get_idx(&self, order_id : u64) -> &usize{
         self._asset_view.get(&order_id).unwrap()
     }
-    pub fn delete_key(&mut self, order_id : Uuid) -> Option<usize>{
+    pub fn delete_key(&mut self, order_id : u64) -> Option<usize>{
         self._asset_view.remove(&order_id)
     }
 }
@@ -75,7 +74,7 @@ pub struct PriceLevel{
 
 #[derive(Debug)]
 pub struct GlobalOrderRegistry{
-    pub map : HashMap<Uuid, OrderLocation>
+    pub map : HashMap<u64, OrderLocation>
 }
 
 impl GlobalOrderRegistry {
@@ -83,25 +82,25 @@ impl GlobalOrderRegistry {
         Self { map: HashMap::new() }
     }
 
-    pub fn get_details(&self, global_order_id :&Uuid) -> Option<&OrderLocation>{
-        let Some(order_details) = self.map.get(global_order_id)
+    pub fn get_details(&self, global_order_id :u64) -> Option<&OrderLocation>{
+        let Some(order_details) = self.map.get(&global_order_id)
         else {
             return None; // if its a early then we need to write return along with ';'
         };
         Some(order_details) // this is the final expression so no need return ;
     }
-    pub fn delete(&mut self, global_order_id :&Uuid) -> Option<OrderLocation>{
-        self.map.remove(global_order_id)
+    pub fn delete(&mut self, global_order_id :u64) -> Option<OrderLocation>{
+        self.map.remove(&global_order_id)
     }
 
-    pub fn insert(&mut self, global_order_id :Uuid, orderlocation : OrderLocation) -> Option<OrderLocation>{
+    pub fn insert(&mut self, global_order_id :u64, orderlocation : OrderLocation) -> Option<OrderLocation>{
         self.map.insert(global_order_id, orderlocation)
     }
 }
 
 #[derive(Debug)]
 pub struct OrderLocation{
-    pub security_id : Uuid,
+    pub security_id : u32,
     pub is_buy_side : bool,
     pub order_index : usize
 }

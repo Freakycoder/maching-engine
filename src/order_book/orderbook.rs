@@ -1,9 +1,7 @@
 use std::collections::{BTreeMap, btree_map::{Entry}};
 use anyhow::anyhow;
 use tracing::instrument;
-use uuid::Uuid;
-
-use crate::order_book::types::{BookDepth, CancelOrder, ModifyOrder, ModifyOutcome, OrderNode, PriceLevel, PriceLevelDepth};
+use crate::order_book::types::{BookDepth, EngineCancelOrder, EngineModifyOrder, ModifyOutcome, OrderNode, PriceLevel, PriceLevelDepth};
 
 #[derive(Debug)]
 pub struct OrderBook{
@@ -24,7 +22,7 @@ impl OrderBook {
         ),
         err
     )]
-    pub fn create_buy_order(&mut self, order_id : Uuid, resting_order : OrderNode) -> Result<usize, anyhow::Error>{
+    pub fn create_buy_order(&mut self, order_id : u64, resting_order : OrderNode) -> Result<usize, anyhow::Error>{
         
         let mut order = resting_order;
         let order_quantity = order.current_quantity;
@@ -102,7 +100,7 @@ impl OrderBook {
         ),
         err
     )]
-    pub fn create_sell_order(&mut self, order_id : Uuid, resting_order : OrderNode) -> Result<usize, anyhow::Error>{
+    pub fn create_sell_order(&mut self, order_id : u64, resting_order : OrderNode) -> Result<usize, anyhow::Error>{
         let mut order = resting_order;
         let order_quantity = order.current_quantity;
         let price = order.market_limit;
@@ -178,7 +176,7 @@ impl OrderBook {
         ),
         err
     )]
-    pub fn cancel_order(&mut self, order_id : Uuid, order : CancelOrder) -> Result<(), anyhow::Error>{
+    pub fn cancel_order(&mut self, order_id : u64, order : EngineCancelOrder) -> Result<(), anyhow::Error>{
         if order.is_buy_side {
                             let (prev, next, old_price, old_quantity) = {
                                 match self.bid.order_pool[order.order_index].as_ref(){
@@ -372,7 +370,7 @@ impl OrderBook {
         ),
         err
     )]
-    pub fn modify_order(&mut self, order_id : Uuid, order : ModifyOrder) -> Result<Option<ModifyOutcome>, anyhow::Error>{
+    pub fn modify_order(&mut self, order_id : u64, order : EngineModifyOrder) -> Result<Option<ModifyOutcome>, anyhow::Error>{
         if order.is_buy_side{
                 let (old_initial_qty, old_current_qty, old_price) = {
                     match self.bid.order_pool[order.order_index].as_ref(){
@@ -386,14 +384,14 @@ impl OrderBook {
                 };
                 if let Some(new_price) = order.new_price && let Some(new_qty) = order.new_quantity{
                     if new_price != old_price{
-                        if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
                             return Ok(Some(ModifyOutcome::Both {new_price, new_initial_qty: new_qty, old_current_qty }));
                             }
                         }
                     return Ok(None);
                 } else if let Some(new_qty) = order.new_quantity  {
                     if new_qty > old_initial_qty{
-                        if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
                             return Ok(Some(ModifyOutcome::Requantized {old_price, new_initial_qty: new_qty, old_current_qty }))
                         }
                         return Ok(None);
@@ -410,7 +408,7 @@ impl OrderBook {
                         }
                     }
                 } else {
-                    if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
+                    if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
                         return Ok(Some(ModifyOutcome::Repriced {new_price : order.new_price.unwrap(), old_initial_qty, old_current_qty }));
                     }
                     return Ok(None);
@@ -429,14 +427,14 @@ impl OrderBook {
 
                 if let Some(new_price) = order.new_price && let Some(new_qty) = order.new_quantity{
                     if new_price != old_price{
-                        if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
                            return Ok(Some(ModifyOutcome::Requantized {old_price, new_initial_qty: new_qty, old_current_qty }))
                         }
                     }
                     return Ok(None);
                 } else if let Some(new_qty) = order.new_quantity  {
                     if new_qty > old_initial_qty{
-                        if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
                             return Ok(Some(ModifyOutcome::Requantized { old_price, new_initial_qty: new_qty, old_current_qty }))
                         }
                         return Ok(None);
@@ -453,7 +451,7 @@ impl OrderBook {
                         }
                     }
                 }else {
-                    if let Ok(_) = self.cancel_order(order_id ,CancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
+                    if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_index : order.order_index, is_buy_side: order.is_buy_side,}){
                         return Ok(Some(ModifyOutcome::Repriced { new_price : order.new_price.unwrap(), old_initial_qty, old_current_qty }));
                     }
                     return Ok(None);
