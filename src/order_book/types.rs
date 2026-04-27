@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct OrderNode{
+    pub order_id : u64,
     pub initial_quantity : u32,
     pub current_quantity : u32,
     pub market_limit : u32, // essentially the limit or (market limit) price at which the order gets executed
@@ -30,12 +31,12 @@ pub enum OrderType{
 #[derive(Debug)]
 pub struct EngineCancelOrder{
     pub is_buy_side : bool,
-    pub order_index : usize
+    pub order_id : u64
 }
 
 #[derive(Debug)]
 pub struct EngineModifyOrder{ //THINK ABOUT CANCEL AND NOT CANCEL SCENARIO
-    pub order_index : usize,
+    pub order_id : u64,
     pub is_buy_side : bool,
     pub new_price : Option<u32>,
     pub new_quantity : Option<u32>,
