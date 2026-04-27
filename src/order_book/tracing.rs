@@ -1,12 +1,11 @@
 use tracing::{Span, info_span};
-use uuid::Uuid;
 use tracing::field::Empty;
 
 pub struct Tracing {}
 
 impl Tracing {
     pub fn match_order_span(
-        order_id: String,
+        order_id: u64,
         filled: Empty,
         reason: Empty,
         order_type: &'static str,
@@ -26,7 +25,7 @@ impl Tracing {
         )
     }
     pub fn modify_span(
-        order_id: String,
+        order_id: u64,
         filled: bool,
         reason: Empty,
         modify_reason: Empty,
@@ -49,7 +48,7 @@ impl Tracing {
     }
 
     pub fn cancel_span(
-        order_id: Uuid,
+        order_id: u64,
         success_status: bool,
         reason: &'static str,
     ) -> Span{
