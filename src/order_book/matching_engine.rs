@@ -5,7 +5,7 @@ use crate::order_book::{
 };
 use anyhow::{Context, anyhow};
 use std::collections::HashMap;
-use tracing::{Span, instrument};
+use tracing::{Span};
 
 #[derive(Debug)]
 pub struct MatchingEngine {
@@ -19,50 +19,35 @@ impl MatchingEngine {
         Self { _book: HashMap::new(), _global_registry: GlobalOrderRegistry::new() }
     }
 
-    #[instrument(
-        name = "get_orderbook",
-        skip(self),
-        fields(
-            order_id = %global_order_id,
-        ),
-    )]
     fn get_orderbook(
         &mut self,
-        global_order_id: u64,
-        span: &Span
-    ) -> Option<(usize, bool,u32, &mut OrderBook)> {
-        let order_location = match self._global_registry.get_details(global_order_id){
-            Some(location) => {
-                location
-            }
-            None => {
-                span.record("reason", "order not found in global registry");
-                return None;
-            }
-        };
-        let Some(book) = self._book.get_mut(&order_location.security_id) else {
-            span.record("reason", "orderbook doesn't exist");
+        security_id : u32
+    ) -> Option<&mut OrderBook> {
+        
+        let Some(book) = self._book.get_mut(&security_id) else {
             return None;
         };
-        Some((order_location.order_index, order_location.is_buy_side,order_location.security_id, book))
+        Some(book)
     }
 
     pub fn modify(
         &mut self,
-        global_order_id: u64,
+        order_id: u64,
+        security_id : u32,
         new_price: Option<u32>,
         new_qty: Option<u32>,
+        is_buy_side : bool,
         span: &Span,
     ) -> Result< &'static str, anyhow::Error> {
         let _gaurd = span.enter();
-        let (order_index, is_buy_side,security_id, orderbook) = self
-            .get_orderbook(global_order_id, span)
+        let orderbook = self
+            .get_orderbook(security_id)
             .context("Could not find the orderbook")?;
         if let Ok(potential_modfication) = orderbook.modify_order(
-            global_order_id,
+            order_id,
             EngineModifyOrder {
+                order_id,
                 new_price,
-                order_index,
                 is_buy_side,
                 new_quantity: new_qty,
             },
@@ -75,10 +60,10 @@ impl MatchingEngine {
                         old_current_qty,
                     } => {
                         span.record("modify_outcome", "price & qty");
-                        if let Some(_) = self._global_registry.delete(global_order_id){
+                        if let Some(_) = self._global_registry.delete(order_id){
                             let _ = self.match_order(
                             EngineNewOrder {
-                                engine_order_id: global_order_id,
+                                engine_order_id: order_id,
                                 price: Some(new_price),
                                 initial_quantity: new_initial_qty,
                                 current_quantity : old_current_qty,
@@ -95,10 +80,10 @@ impl MatchingEngine {
                     ModifyOutcome::Repriced { new_price, old_initial_qty, old_current_qty } => 
                         {
                         span.record("modify_outcome", "price");
-                        if let Some(_) = self._global_registry.delete(global_order_id){
+                        if let Some(_) = self._global_registry.delete(order_id){
                             let _ = self.match_order(
                             EngineNewOrder {
-                                engine_order_id: global_order_id,
+                                engine_order_id: order_id,
                                 price: Some(new_price),
                                 initial_quantity: old_initial_qty,
                                 current_quantity : old_current_qty,
@@ -114,10 +99,10 @@ impl MatchingEngine {
                     },
                     ModifyOutcome::Requantized { old_price, new_initial_qty, old_current_qty } => {
                         span.record("modify_outcome", "qty");
-                        if let Some(_) = self._global_registry.delete(global_order_id){
+                        if let Some(_) = self._global_registry.delete(order_id){
                             let _ = self.match_order(
                             EngineNewOrder {
-                                engine_order_id: global_order_id,
+                                engine_order_id: order_id,
                                 price: Some(old_price),
                                 initial_quantity: new_initial_qty,
                                 current_quantity : old_current_qty,
@@ -142,16 +127,16 @@ impl MatchingEngine {
         }
     }
 
-    pub fn cancel(&mut self, global_order_id: u64, span: &Span) -> Result<CancelOutcome, anyhow::Error>{
-        let (order_index, is_buy_side,_, orderbook) = self
-            .get_orderbook(global_order_id, span)
+    pub fn cancel(&mut self, order_id: u64,security_id : u32, span: &Span, is_buy_side : bool) -> Result<CancelOutcome, anyhow::Error>{
+        let orderbook = self
+            .get_orderbook(security_id)
             .context("Could not find the orderbook")?;
-        if let Err(_) = orderbook.cancel_order(global_order_id, EngineCancelOrder{is_buy_side, order_index}){
+        if let Err(_) = orderbook.cancel_order(order_id, EngineCancelOrder{is_buy_side, order_id}){
             span.record("reason", "orderbook cancellation failed");
             span.record("success_status", false);
             return Ok(CancelOutcome::Failed);
         }; 
-        if let Some(_) = self._global_registry.delete(global_order_id){
+        if let Some(_) = self._global_registry.delete(order_id){
             span.record("success_status", true);
             return Ok(CancelOutcome::Success)
         };
@@ -422,6 +407,7 @@ impl MatchingEngine {
                         let alloted_index = orderbook.create_sell_order(
                             order.engine_order_id,
                             OrderNode {
+                                order_id : order.engine_order_id,
                                 initial_quantity: order.initial_quantity,
                                 current_quantity: fill_quantity,
                                 market_limit: order.price.unwrap(),
@@ -676,6 +662,7 @@ impl MatchingEngine {
                         let alloted_index = orderbook.create_buy_order(
                             order.engine_order_id,
                             OrderNode {
+                                order_id : order.engine_order_id,
                                 initial_quantity: order.initial_quantity,
                                 current_quantity: fill_quantity,
                                 market_limit: order.price.unwrap(),
