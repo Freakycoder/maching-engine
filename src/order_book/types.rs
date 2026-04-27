@@ -30,13 +30,15 @@ pub enum OrderType{
 
 #[derive(Debug)]
 pub struct EngineCancelOrder{
-    pub is_buy_side : bool,
-    pub order_id : u64
+    pub order_id : u64,
+    pub security_id : u32,
+    pub is_buy_side : bool
 }
 
 #[derive(Debug)]
 pub struct EngineModifyOrder{ //THINK ABOUT CANCEL AND NOT CANCEL SCENARIO
     pub order_id : u64,
+    pub security_id : u32,
     pub is_buy_side : bool,
     pub new_price : Option<u32>,
     pub new_quantity : Option<u32>,

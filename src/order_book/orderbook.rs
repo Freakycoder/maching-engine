@@ -406,14 +406,14 @@ impl OrderBook {
                 };
                 if let Some(new_price) = order.new_price && let Some(new_qty) = order.new_quantity{
                     if new_price != old_price{
-                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, security_id : order.security_id, is_buy_side: order.is_buy_side,}){
                             return Ok(Some(ModifyOutcome::Both {new_price, new_initial_qty: new_qty, old_current_qty }));
                             }
                         }
                     return Ok(None);
                 } else if let Some(new_qty) = order.new_quantity  {
                     if new_qty > old_initial_qty{
-                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id,security_id : order.security_id, is_buy_side: order.is_buy_side,}){
                             return Ok(Some(ModifyOutcome::Requantized {old_price, new_initial_qty: new_qty, old_current_qty }))
                         }
                         return Ok(None);
@@ -430,7 +430,7 @@ impl OrderBook {
                         }
                     }
                 } else {
-                    if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, is_buy_side: order.is_buy_side,}){
+                    if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id,security_id : order.security_id, is_buy_side: order.is_buy_side,}){
                         return Ok(Some(ModifyOutcome::Repriced {new_price : order.new_price.unwrap(), old_initial_qty, old_current_qty }));
                     }
                     return Ok(None);
@@ -453,14 +453,14 @@ impl OrderBook {
 
                 if let Some(new_price) = order.new_price && let Some(new_qty) = order.new_quantity{
                     if new_price != old_price{
-                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id,security_id : order.security_id, is_buy_side: order.is_buy_side,}){
                            return Ok(Some(ModifyOutcome::Requantized {old_price, new_initial_qty: new_qty, old_current_qty }))
                         }
                     }
                     return Ok(None);
                 } else if let Some(new_qty) = order.new_quantity  {
                     if new_qty > old_initial_qty{
-                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, is_buy_side: order.is_buy_side,}){
+                        if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, security_id : order.security_id, is_buy_side: order.is_buy_side,}){
                             return Ok(Some(ModifyOutcome::Requantized { old_price, new_initial_qty: new_qty, old_current_qty }))
                         }
                         return Ok(None);
@@ -477,7 +477,7 @@ impl OrderBook {
                         }
                     }
                 }else {
-                    if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, is_buy_side: order.is_buy_side,}){
+                    if let Ok(_) = self.cancel_order(order_id ,EngineCancelOrder { order_id : order.order_id, security_id : order.security_id, is_buy_side: order.is_buy_side,}){
                         return Ok(Some(ModifyOutcome::Repriced { new_price : order.new_price.unwrap(), old_initial_qty, old_current_qty }));
                     }
                     return Ok(None);

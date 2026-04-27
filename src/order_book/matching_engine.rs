@@ -47,6 +47,7 @@ impl MatchingEngine {
             order_id,
             EngineModifyOrder {
                 order_id,
+                security_id,
                 new_price,
                 is_buy_side,
                 new_quantity: new_qty,
@@ -131,7 +132,7 @@ impl MatchingEngine {
         let orderbook = self
             .get_orderbook(security_id)
             .context("Could not find the orderbook")?;
-        if let Err(_) = orderbook.cancel_order(order_id, EngineCancelOrder{is_buy_side, order_id}){
+        if let Err(_) = orderbook.cancel_order(order_id, EngineCancelOrder{is_buy_side,security_id, order_id}){
             span.record("reason", "orderbook cancellation failed");
             span.record("success_status", false);
             return Ok(CancelOutcome::Failed);
