@@ -1,6 +1,6 @@
 use crate::order_book::{
     orderbook::OrderBook, types::{
-        BookDepth, EngineCancelOrder, CancelOutcome, GlobalOrderRegistry, EngineModifyOrder, ModifyOutcome, EngineNewOrder, OrderLocation, OrderNode, OrderType
+        BookDepth, EngineCancelOrder, CancelOutcome, EngineModifyOrder, ModifyOutcome, EngineNewOrder, OrderNode, OrderType
     }
 };
 use anyhow::{Context, anyhow};
@@ -9,14 +9,13 @@ use tracing::{Span};
 
 #[derive(Debug)]
 pub struct MatchingEngine {
-    _book: HashMap<u32, OrderBook>,
-    _global_registry: GlobalOrderRegistry,
+    _book: HashMap<u32, OrderBook>
 }
 
 impl MatchingEngine {
 
     pub fn new() -> Self{
-        Self { _book: HashMap::new(), _global_registry: GlobalOrderRegistry::new() }
+        Self { _book: HashMap::new()}
     }
 
     fn get_orderbook(
@@ -61,8 +60,7 @@ impl MatchingEngine {
                         old_current_qty,
                     } => {
                         span.record("modify_outcome", "price & qty");
-                        if let Some(_) = self._global_registry.delete(order_id){
-                            let _ = self.match_order(
+                        let _ = self.match_order(
                             EngineNewOrder {
                                 engine_order_id: order_id,
                                 price: Some(new_price),
@@ -72,16 +70,12 @@ impl MatchingEngine {
                                 security_id,
                                 order_type: OrderType::Limit,
                             },
-                            span);
-                            return Ok("Both")
-                        }
-                        span.record("intermediate_error", "Failed to delete from global registry");
-                        return Ok("Error occured while deleting from global registry")
+                        span);
+                        return Ok("Both")
                     },
                     ModifyOutcome::Repriced { new_price, old_initial_qty, old_current_qty } => 
                         {
                         span.record("modify_outcome", "price");
-                        if let Some(_) = self._global_registry.delete(order_id){
                             let _ = self.match_order(
                             EngineNewOrder {
                                 engine_order_id: order_id,
@@ -92,15 +86,10 @@ impl MatchingEngine {
                                 security_id,
                                 order_type: OrderType::Limit,
                             },
-                            span);
-                            return Ok("Repriced")
-                        }
-                        span.record("intermediate_error", "Failed to delete from global registry");
-                        return Ok("Error occured while deleting from global registry")
+                        span);
+                        return Ok("Repriced")
                     },
                     ModifyOutcome::Requantized { old_price, new_initial_qty, old_current_qty } => {
-                        span.record("modify_outcome", "qty");
-                        if let Some(_) = self._global_registry.delete(order_id){
                             let _ = self.match_order(
                             EngineNewOrder {
                                 engine_order_id: order_id,
@@ -112,9 +101,6 @@ impl MatchingEngine {
                                 order_type: OrderType::Limit,
                             }, span);
                             return Ok("Requantized")
-                        }
-                        span.record("intermediate_error", "Failed to delete from global registry");
-                        return Ok("Error occured while deleting from global registry")
                     },
                     ModifyOutcome::Inplace => {
                         span.record("modify_outcome", "qty reduction");
@@ -137,13 +123,8 @@ impl MatchingEngine {
             span.record("success_status", false);
             return Ok(CancelOutcome::Failed);
         }; 
-        if let Some(_) = self._global_registry.delete(order_id){
-            span.record("success_status", true);
-            return Ok(CancelOutcome::Success)
-        };
-        span.record("reason", "Registry cancellation failed");
-        span.record("success_status", false);
-        Ok(CancelOutcome::Failed)
+        span.record("success_status", true);
+        return Ok(CancelOutcome::Success);
     }
 
     pub fn depth(&self, security_id : u32, levels_count :Option<u32>, span: &Span ) -> Result<BookDepth, anyhow::Error>{
@@ -416,12 +397,6 @@ impl MatchingEngine {
                                 prev: None,
                             },
                         )?;
-                        let order_location = OrderLocation {
-                            security_id : order.security_id,
-                            is_buy_side : order.is_buy_side,
-                            order_index : alloted_index
-                        };
-                        self._global_registry.insert(order.engine_order_id, order_location);
                         span.record("order_type", "limit");
                         span.record("is_buy_side", false);
                         span.record("levels_consumed", levels_consumed);
@@ -671,12 +646,6 @@ impl MatchingEngine {
                                 prev: None,
                             },
                         )?;
-                        let order_location = OrderLocation {
-                            security_id : order.security_id,
-                            is_buy_side : order.is_buy_side,
-                            order_index : alloted_index
-                        };
-                        self._global_registry.insert(order.engine_order_id, order_location);
                         span.record("order_type", "limit");
                         span.record("is_buy_side", true);
                         span.record("levels_consumed", levels_consumed);
