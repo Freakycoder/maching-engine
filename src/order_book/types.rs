@@ -76,6 +76,13 @@ pub struct PriceLevel{
 }
 
 #[derive(Debug)]
+pub struct MatchOutcome {
+    pub order_index: Option<u32>,
+    pub orders_touched: u32,
+    pub levels_consumed: u32,
+}
+
+#[derive(Debug)]
 pub enum ModifyOutcome{
     Inplace,
     Repriced {

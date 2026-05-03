@@ -1,6 +1,6 @@
 use crate::order_book::{
     orderbook::OrderBook, types::{
-        BookDepth, EngineCancelOrder, CancelOutcome, EngineModifyOrder, ModifyOutcome, EngineNewOrder, OrderNode, OrderType
+        BookDepth, CancelOutcome, EngineCancelOrder, EngineModifyOrder, EngineNewOrder, MatchOutcome, ModifyOutcome, OrderNode, OrderType
     }
 };
 use anyhow::{Context, anyhow};
@@ -145,7 +145,7 @@ impl MatchingEngine {
         }
     }
 
-    pub fn match_order(&mut self, order: EngineNewOrder, span: &Span) -> Result<Option<usize>, anyhow::Error> {
+    pub fn match_order(&mut self, order: EngineNewOrder, span: &Span) -> Result<MatchOutcome, anyhow::Error> {
         
         let _gaurd = span.enter();
 
@@ -231,7 +231,11 @@ impl MatchingEngine {
                     span.record("is_buy_side", false);
                     span.record("levels_consumed", levels_consumed);
                     span.record("orders_touched", orders_touched);
-                    Ok(None)
+                    Ok(MatchOutcome{
+                        order_index : None,
+                        levels_consumed,
+                        orders_touched
+                    })
                 }
                 OrderType::Market(market_limit) => {
                     let mut fill_quantity = order.initial_quantity;
@@ -311,7 +315,11 @@ impl MatchingEngine {
                     span.record("is_buy_side", false);
                     span.record("levels_consumed", levels_consumed);
                     span.record("orders_touched", orders_touched);
-                    Ok(None)
+                    Ok(MatchOutcome{
+                        order_index : None,
+                        levels_consumed,
+                        orders_touched
+                    })
                 }
                 OrderType::Limit => {
                     let mut fill_quantity = order.initial_quantity;
@@ -401,9 +409,17 @@ impl MatchingEngine {
                         span.record("is_buy_side", false);
                         span.record("levels_consumed", levels_consumed);
                         span.record("orders_touched", orders_touched);
-                        return Ok(Some(alloted_index))
+                        return Ok(MatchOutcome{
+                        order_index : Some(alloted_index as u32),
+                        levels_consumed,
+                        orders_touched
+                    })
                     }
-                    Ok(None)
+                    Ok(MatchOutcome{
+                        order_index : None,
+                        levels_consumed,
+                        orders_touched
+                    })
                 }
             }
         } else {
@@ -476,7 +492,11 @@ impl MatchingEngine {
                     span.record("is_buy_side", true);
                     span.record("levels_consumed", levels_consumed);
                     span.record("orders_touched", orders_touched);
-                    Ok(None)
+                    Ok(MatchOutcome{
+                        order_index : None,
+                        levels_consumed,
+                        orders_touched
+                    })
                 }
                 OrderType::Market(market_limit) => {
                     let mut fill_quantity = order.initial_quantity;
@@ -558,7 +578,11 @@ impl MatchingEngine {
                     span.record("is_buy_side", true);
                     span.record("levels_consumed", levels_consumed);
                     span.record("orders_touched", orders_touched);
-                    Ok(None)
+                    Ok(MatchOutcome{
+                        order_index : None,
+                        levels_consumed,
+                        orders_touched
+                    })
                 }
                 OrderType::Limit => {
                     let mut fill_quantity = order.initial_quantity;
@@ -650,9 +674,17 @@ impl MatchingEngine {
                         span.record("is_buy_side", true);
                         span.record("levels_consumed", levels_consumed);
                         span.record("orders_touched", orders_touched);
-                        return Ok(Some(alloted_index))
+                        return Ok(MatchOutcome{
+                        order_index : Some(alloted_index as u32),
+                        levels_consumed,
+                        orders_touched
+                    })
                     }
-                    Ok(None)
+                    Ok(MatchOutcome{
+                        order_index : None,
+                        levels_consumed,
+                        orders_touched
+                    })
                 }
             }
         }
