@@ -76,39 +76,6 @@ pub struct PriceLevel{
 }
 
 #[derive(Debug)]
-pub struct GlobalOrderRegistry{
-    pub map : HashMap<u64, OrderLocation>
-}
-
-impl GlobalOrderRegistry {
-    pub fn new() -> Self{
-        Self { map: HashMap::new() }
-    }
-
-    pub fn get_details(&self, global_order_id :u64) -> Option<&OrderLocation>{
-        let Some(order_details) = self.map.get(&global_order_id)
-        else {
-            return None; // if its a early then we need to write return along with ';'
-        };
-        Some(order_details) // this is the final expression so no need return ;
-    }
-    pub fn delete(&mut self, global_order_id :u64) -> Option<OrderLocation>{
-        self.map.remove(&global_order_id)
-    }
-
-    pub fn insert(&mut self, global_order_id :u64, orderlocation : OrderLocation) -> Option<OrderLocation>{
-        self.map.insert(global_order_id, orderlocation)
-    }
-}
-
-#[derive(Debug)]
-pub struct OrderLocation{
-    pub security_id : u32,
-    pub is_buy_side : bool,
-    pub order_index : usize
-}
-
-#[derive(Debug)]
 pub enum ModifyOutcome{
     Inplace,
     Repriced {
